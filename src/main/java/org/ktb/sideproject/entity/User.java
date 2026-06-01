@@ -6,7 +6,7 @@ import lombok.*;
 @Entity
 @Table(name = "User")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@RequiredArgsConstructor
 public class User {
 
     @Id
@@ -33,5 +33,19 @@ public class User {
         this.nickname = nickname;
         this.profileImage = profileImage;
     }
+
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
+    public void changeNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public void changeProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
+
 
 }

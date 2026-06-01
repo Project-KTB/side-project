@@ -1,9 +1,8 @@
 package org.ktb.sideproject.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 @Entity
 @Table(
@@ -14,7 +13,7 @@ import lombok.NoArgsConstructor;
         )
 )
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@RequiredArgsConstructor
 public class PostLike {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

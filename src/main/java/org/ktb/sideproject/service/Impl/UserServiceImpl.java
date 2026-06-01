@@ -2,11 +2,17 @@ package org.ktb.sideproject.service.Impl;
 
 import lombok.RequiredArgsConstructor;
 import org.ktb.sideproject.dto.auth.req.SignupRequest;
+import org.ktb.sideproject.dto.user.UserInfo;
+import org.ktb.sideproject.dto.user.req.NicknameUpdateRequest;
+import org.ktb.sideproject.dto.user.req.PasswordUpdateRequest;
+import org.ktb.sideproject.dto.user.req.ProfileImageUpdateRequest;
 import org.ktb.sideproject.entity.User;
 import org.ktb.sideproject.repository.UserRepository;
 import org.ktb.sideproject.service.UserService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +22,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional
     public void signup(SignupRequest signupRequest) {
 
         if(userRepository.existsByEmail(signupRequest.email())){
@@ -36,17 +43,46 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void getUser() {
+    @Transactional(readOnly = true)
+    public UserInfo getUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
 
+        return new UserInfo(user.getId(), user.getEmail(), user.getNickname(), user.getProfileImage());
     }
 
     @Override
-    public void updateUser() {
-
+    @Transactional
+    public void updatePassword(Long userId, PasswordUpdateRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        user.changePassword(passwordEncoder.encode(request.password()));
     }
 
     @Override
-    public void deleteUser() {
+    @Transactional
+    public UserInfo updateNickname(Long userId, NicknameUpdateRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        user.changeNickname(request.nickname());
 
+        return new UserInfo(user.getId(), user.getEmail(), user.getNickname(), user.getProfileImage());
+    }
+
+    @Override
+    @Transactional
+    public UserInfo updateProfileImage(Long userId, ProfileImageUpdateRequest request) {
+        User user = userRepository.findById(userId).
+                orElseThrow(()-> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        user.changeProfileImage(request.profileImage());
+        return new  UserInfo(user.getId(), user.getEmail(), user.getNickname(), user.getProfileImage());
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(()-> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        userRepository.delete(user);
     }
 }

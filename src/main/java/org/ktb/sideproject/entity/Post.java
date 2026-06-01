@@ -1,9 +1,7 @@
 package org.ktb.sideproject.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -12,7 +10,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "Post")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@RequiredArgsConstructor
 public class Post {
 
     @Id
@@ -25,6 +23,9 @@ public class Post {
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
+
+    @Column
+    private String imageUrl;
 
     @Column(nullable = false)
     private int likesCount = 0;
@@ -46,5 +47,25 @@ public class Post {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "userId", nullable = false)
     private User user;
+
+    @Builder
+    public Post(String title, String content, String imageUrl, User user) {
+        this.title = title;
+        this.content = content;
+        this.imageUrl = imageUrl;
+        this.user = user;
+    }
+
+    public void update(String title, String content, String imageUrl) {
+        if (title != null && !title.isBlank()) {
+            this.title = title;
+        }
+        if (content != null && !content.isBlank()) {
+            this.content = content;
+        }
+        if (imageUrl != null && !imageUrl.isBlank()) {
+            this.imageUrl = imageUrl;
+        }
+    }
 
 }

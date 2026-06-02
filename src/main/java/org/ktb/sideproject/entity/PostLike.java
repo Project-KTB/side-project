@@ -1,6 +1,7 @@
 package org.ktb.sideproject.entity;
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -27,4 +28,10 @@ public class PostLike {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "postId", nullable = false)
     private Post post;
+
+    @Builder
+    public PostLike(User user, Post post) {
+        this.user = user;
+        this.post = post;
+    }
 }

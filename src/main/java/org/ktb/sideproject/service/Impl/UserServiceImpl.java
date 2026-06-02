@@ -32,6 +32,8 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
         }
 
+        // 비밀번호 확인 값 일치 여
+
         User user = User.builder()
                 .email(signupRequest.email())
                 .password(passwordEncoder.encode(signupRequest.password()))
@@ -56,6 +58,10 @@ public class UserServiceImpl implements UserService {
     public void updatePassword(Long userId, PasswordUpdateRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(()-> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        if (!request.password().equals(request.passwordConfirm())) {
+            throw new IllegalArgumentException("비밀번호 확인과 다릅니다.");
+        }
+
         user.changePassword(passwordEncoder.encode(request.password()));
     }
 
@@ -64,6 +70,11 @@ public class UserServiceImpl implements UserService {
     public UserInfo updateNickname(Long userId, NicknameUpdateRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(()-> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+
+        if (userRepository.existsByNicknameAndIdNot(request.nickname(), userId)) {
+            throw new IllegalArgumentException("중복된 닉네임 입니다.");
+        }
+
         user.changeNickname(request.nickname());
 
         return new UserInfo(user.getId(), user.getEmail(), user.getNickname(), user.getProfileImage());

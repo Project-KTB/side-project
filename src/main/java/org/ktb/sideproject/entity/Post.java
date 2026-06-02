@@ -61,4 +61,24 @@ public class Post {
         }
     }
 
+    public void increaseCommentsCount() {
+        this.commentsCount++;
+    }
+
+    public void decreaseCommentsCount() {
+        if (this.commentsCount > 0) {
+            this.commentsCount--;
+        }
+    }
+
+    public void increaseLikesCount() {
+        this.likesCount++;
+    }
+
+    public void decreaseLikesCount() {
+        if (this.likesCount > 0) {
+            this.likesCount--;
+        }
+    }
+
 }

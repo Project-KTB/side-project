@@ -1,5 +1,6 @@
 package org.ktb.sideproject.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.ktb.sideproject.auth.CustomUserDetails;
 import org.ktb.sideproject.dto.post.req.PostCreateRequest;
@@ -21,7 +22,7 @@ public class PostController {
     @PostMapping
     public ResponseEntity<PostDetailResponse> createPost(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody PostCreateRequest request) {
+            @Valid @RequestBody PostCreateRequest request) {
         Long userId = userDetails.getUserId();
         PostDetailResponse postDetailResponse = postService.createPost(userId, request);
         return ResponseEntity.ok(postDetailResponse);
@@ -52,7 +53,7 @@ public class PostController {
     public ResponseEntity<PostUpdateResponse> updatePost(
             @PathVariable Long postId,
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @RequestBody PostUpdateRequest request) {
+            @Valid @RequestBody PostUpdateRequest request) {
         Long userId = userDetails.getUserId();
         PostUpdateResponse postUpdateResponse = postService.updatePost(userId, postId, request);
         return ResponseEntity.ok(postUpdateResponse);

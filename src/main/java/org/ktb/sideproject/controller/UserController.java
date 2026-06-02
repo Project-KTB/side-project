@@ -1,6 +1,7 @@
 package org.ktb.sideproject.controller;
 
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.ktb.sideproject.auth.CustomUserDetails;
 import org.ktb.sideproject.dto.auth.req.SignupRequest;
@@ -22,7 +23,7 @@ public class UserController {
 
     // 회원 가입
     @PostMapping
-    public ResponseEntity<String> signup(@RequestBody SignupRequest signupRequest) {
+    public ResponseEntity<String> signup(@Valid @RequestBody SignupRequest signupRequest) {
         userService.signup(signupRequest);
         return ResponseEntity.ok("회원가입이 완료 되었습니다.");
     }
@@ -43,7 +44,7 @@ public class UserController {
     @PatchMapping("/{userId}/password")
     public ResponseEntity<Void> updatePassword(
             @PathVariable Long userId,
-            @RequestBody PasswordUpdateRequest passwordUpdateRequest,
+            @Valid @RequestBody PasswordUpdateRequest passwordUpdateRequest,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         if(!userDetails.getUserId().equals(userId)) {
             throw new IllegalArgumentException("본인 정보만 수정할 수 있습니다.");
@@ -56,7 +57,7 @@ public class UserController {
     @PatchMapping("/{userId}/nickname")
     public ResponseEntity<UserInfo> updateNickname(
             @PathVariable Long userId,
-            @RequestBody NicknameUpdateRequest nicknameUpdateRequest,
+            @Valid @RequestBody NicknameUpdateRequest nicknameUpdateRequest,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         if(!userDetails.getUserId().equals(userId)) {
             throw new IllegalArgumentException("본인 정보만 수정할 수 있습니다.");
@@ -68,7 +69,7 @@ public class UserController {
     @PatchMapping("/{userId}/profileImage")
     public ResponseEntity<UserInfo> updateProfileImage(
             @PathVariable Long userId,
-            @RequestBody ProfileImageUpdateRequest profileImageUpdateRequest,
+            @Valid @RequestBody ProfileImageUpdateRequest profileImageUpdateRequest,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         if(!userDetails.getUserId().equals(userId)) {
             throw new IllegalArgumentException("본인 정보만 수정할 수 있습니다.");

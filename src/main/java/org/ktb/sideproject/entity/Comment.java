@@ -1,9 +1,8 @@
 package org.ktb.sideproject.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -37,4 +36,17 @@ public class Comment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "userId", nullable = false)
     private User user;
+
+    @Builder
+    public Comment(String content, Post post, User user) {
+        this.content = content;
+        this.post = post;
+        this.user = user;
+    }
+
+    public void update(String content) {
+        if (content != null && !content.isBlank()) {
+            this.content = content;
+        }
+    }
 }

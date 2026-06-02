@@ -28,6 +28,7 @@ public class PostServiceImpl implements PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
 
+    // 게시글 생성
     @Override
     @Transactional
     public PostDetailResponse createPost(Long userId, PostCreateRequest request) {
@@ -47,6 +48,7 @@ public class PostServiceImpl implements PostService {
         return PostDetailResponse.from(currentPost);
     }
 
+    // 게시글 목록 조회
     @Override
     @Transactional(readOnly = true)
     public PostListResponse getPostList(Long cursor, int size) {
@@ -94,6 +96,7 @@ public class PostServiceImpl implements PostService {
         );
     }
 
+    // 게시글 상세 조회
     @Override
     @Transactional(readOnly = true)
     public PostDetailResponse getPost(Long postId) {
@@ -104,6 +107,7 @@ public class PostServiceImpl implements PostService {
         return PostDetailResponse.from(post);
     }
 
+    // 게시글 수정
     @Override
     @Transactional
     public PostUpdateResponse updatePost(Long userId, Long postId, PostUpdateRequest request) {
@@ -128,11 +132,13 @@ public class PostServiceImpl implements PostService {
         return PostUpdateResponse.from(post);
     }
 
+    // 게시글 삭제
     @Override
     @Transactional
     public void deletePost(Long userId, Long postId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(()-> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
+        if (!userRepository.existsById(userId)) {
+            throw new UsernameNotFoundException("사용자를 찾을 수 없습니다.");
+        }
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));

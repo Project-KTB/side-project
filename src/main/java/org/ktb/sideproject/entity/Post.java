@@ -24,9 +24,6 @@ public class Post {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    @Column
-    private String imageUrl;
-
     @Column(nullable = false)
     private int likesCount = 0;
 
@@ -49,22 +46,18 @@ public class Post {
     private User user;
 
     @Builder
-    public Post(String title, String content, String imageUrl, User user) {
+    public Post(String title, String content, User user) {
         this.title = title;
         this.content = content;
-        this.imageUrl = imageUrl;
         this.user = user;
     }
 
-    public void update(String title, String content, String imageUrl) {
+    public void update(String title, String content) {
         if (title != null && !title.isBlank()) {
             this.title = title;
         }
         if (content != null && !content.isBlank()) {
             this.content = content;
-        }
-        if (imageUrl != null && !imageUrl.isBlank()) {
-            this.imageUrl = imageUrl;
         }
     }
 

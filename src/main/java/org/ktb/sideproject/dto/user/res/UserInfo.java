@@ -1,4 +1,4 @@
-package org.ktb.sideproject.dto.user;
+package org.ktb.sideproject.dto.user.res;
 
 public record UserInfo(
         Long id,

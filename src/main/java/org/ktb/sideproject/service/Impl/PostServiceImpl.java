@@ -34,10 +34,11 @@ public class PostServiceImpl implements PostService {
         User user = userRepository.findById(userId)
                 .orElseThrow(()-> new UsernameNotFoundException("사용자를 찾을 수 없습니다."));
 
+        //이미지 업로드 해서 URL 받기
+
         Post post = Post.builder()
                 .content(request.content())
                 .title(request.title())
-                .imageUrl(request.imageUrl())
                 .user(user)
                 .build();
 
@@ -73,7 +74,7 @@ public class PostServiceImpl implements PostService {
 
         // 마지막 게시글에 커서
         Long nextCursor = hasNext && !posts.isEmpty()
-                ? posts.get(posts.size() - 1).getId()
+                ? posts.getLast().getId()
                 : null;
 
         List<PostListInfo> postListInfos = posts.stream()
@@ -122,7 +123,7 @@ public class PostServiceImpl implements PostService {
         }
 
 
-        post.update(request.title(), request.content(), request.imageUrl());
+        post.update(request.title(), request.content());
 
         return PostUpdateResponse.from(post);
     }

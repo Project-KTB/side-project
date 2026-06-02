@@ -1,6 +1,6 @@
 package org.ktb.sideproject.dto.auth.res;
 
-import org.ktb.sideproject.dto.user.UserInfo;
+import org.ktb.sideproject.dto.user.res.UserInfo;
 
 public record LoginResponse(
         String accessToken,

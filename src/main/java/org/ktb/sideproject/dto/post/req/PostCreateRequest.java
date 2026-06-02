@@ -7,7 +7,6 @@ public record PostCreateRequest(
         @NotNull @Size(max=26)
         String title,
         @NotNull
-        String content,
-        String imageUrl
+        String content
 ) {
 }

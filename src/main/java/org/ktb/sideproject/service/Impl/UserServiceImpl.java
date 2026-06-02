@@ -2,7 +2,7 @@ package org.ktb.sideproject.service.Impl;
 
 import lombok.RequiredArgsConstructor;
 import org.ktb.sideproject.dto.auth.req.SignupRequest;
-import org.ktb.sideproject.dto.user.UserInfo;
+import org.ktb.sideproject.dto.user.res.UserInfo;
 import org.ktb.sideproject.dto.user.req.NicknameUpdateRequest;
 import org.ktb.sideproject.dto.user.req.PasswordUpdateRequest;
 import org.ktb.sideproject.dto.user.req.ProfileImageUpdateRequest;

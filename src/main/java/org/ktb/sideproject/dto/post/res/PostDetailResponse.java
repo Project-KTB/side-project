@@ -9,19 +9,18 @@ public record PostDetailResponse(
         Long id,
         String title,
         String content,
-        String imageUrl,
         int likesCount,
         int commentsCount,
         int viewsCount,
         LocalDateTime createdAt,
         Long authorId
+        // 이미지 리스트 URL
 ) {
     public static PostDetailResponse from(Post post) {
         return new PostDetailResponse(
                 post.getId(),
                 post.getTitle(),
                 post.getContent(),
-                post.getImageUrl(),
                 post.getLikesCount(),
                 post.getCommentsCount(),
                 post.getViewsCount(),

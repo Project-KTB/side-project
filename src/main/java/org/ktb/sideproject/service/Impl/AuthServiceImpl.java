@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.ktb.sideproject.auth.JwtProvider;
 import org.ktb.sideproject.dto.auth.req.LoginRequest;
 import org.ktb.sideproject.dto.auth.res.LoginResponse;
-import org.ktb.sideproject.dto.user.UserInfo;
+import org.ktb.sideproject.dto.user.res.UserInfo;
 import org.ktb.sideproject.entity.User;
 import org.ktb.sideproject.repository.UserRepository;
 import org.ktb.sideproject.service.AuthService;

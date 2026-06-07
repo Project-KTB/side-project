@@ -1,8 +1,11 @@
 package org.ktb.sideproject.dto.post.res;
 
+import org.ktb.sideproject.dto.image.ImageInfo;
 import org.ktb.sideproject.entity.Post;
+import org.ktb.sideproject.entity.User;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 //게시글 상세조회
 public record PostDetailResponse(
@@ -13,10 +16,14 @@ public record PostDetailResponse(
         int commentsCount,
         int viewsCount,
         LocalDateTime createdAt,
-        Long authorId
+        Long authorId,
+        String authorNickname,
+        String authorProfileImage,
+        Boolean liked,
         // 이미지 리스트 URL
+        List<ImageInfo> images;
 ) {
-    public static PostDetailResponse from(Post post) {
+    public static PostDetailResponse from(Post post, Boolean liked) {
         return new PostDetailResponse(
                 post.getId(),
                 post.getTitle(),
@@ -25,7 +32,11 @@ public record PostDetailResponse(
                 post.getCommentsCount(),
                 post.getViewsCount(),
                 post.getCreatedAt(),
-                post.getUser().getId()
+                post.getUser().getId(),
+                post.getUser().getNickname(),
+                post.getUser().getProfileImage(),
+                liked
+
         );
     }
 }

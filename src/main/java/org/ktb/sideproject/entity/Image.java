@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(
-        name = "Image",
+        name = "image",
         indexes = @Index(name = "IDX_IMAGE_POST", columnList = "postId") // 인덱스 반영
 )
 @Getter
@@ -30,4 +30,11 @@ public class Image {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "postId", nullable = false)
     private Post post;
+
+    public Image(String originName, String imageName, String imageUrl, Post post) {
+        this.originName = originName;
+        this.imageName = imageName;
+        this.imageUrl = imageUrl;
+        this.post = post;
+    }
 }

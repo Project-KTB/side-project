@@ -3,6 +3,7 @@ package org.ktb.sideproject.service.Impl;
 import lombok.RequiredArgsConstructor;
 import org.ktb.sideproject.dto.comment.req.CommentCreateRequest;
 import org.ktb.sideproject.dto.comment.req.CommentUpdateRequest;
+import org.ktb.sideproject.dto.comment.res.CommentListResponse;
 import org.ktb.sideproject.dto.comment.res.CommentResponse;
 import org.ktb.sideproject.entity.Comment;
 import org.ktb.sideproject.entity.Post;
@@ -15,6 +16,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
@@ -22,6 +25,22 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+
+    @Override
+    public CommentListResponse getComments(Long postId) {
+        if(!postRepository.existsById(postId)) {
+            throw new UsernameNotFoundException("게시글을 찾을 수 없습니다.");
+        }
+
+        List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtDesc(postId);
+
+        List<CommentResponse> commentResponses = comments.stream()
+                .map(CommentResponse::from)
+                .toList();
+
+        return new CommentListResponse(commentResponses);
+
+    }
 
     @Override
     @Transactional

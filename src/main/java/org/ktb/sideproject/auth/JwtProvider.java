@@ -5,6 +5,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.Cookie;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -39,6 +40,10 @@ public class JwtProvider {
     public Long getUserId(String token) {
         return Long.valueOf(this.parseToken(token).getSubject());
     }
+    // 토큰에서 사용자 추출
+    public String getUserRole(String token) {
+        return this.parseToken(token).get("role", String.class);
+    }
 
     public boolean validateAccessToken(String token) {
         return validateToken(token, AT);
@@ -47,6 +52,8 @@ public class JwtProvider {
     public boolean validateRefreshToken(String token) {
         return validateToken(token, RT);
     }
+
+
 
     // 토큰 검증
     private boolean validateToken(String token, String tokenType){
@@ -79,6 +86,7 @@ public class JwtProvider {
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("type", type)
+                .claim("role", "ROLE_USER")
                 .issuedAt(now)
                 .expiration(expiration)
                 .signWith(key)
@@ -95,5 +103,7 @@ public class JwtProvider {
                 .parseSignedClaims(token)
                 .getPayload();
     }
+
+
 
 }

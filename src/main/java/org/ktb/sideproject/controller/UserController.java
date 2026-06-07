@@ -3,13 +3,14 @@ package org.ktb.sideproject.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.ktb.sideproject.auth.CustomUserDetails;
 import org.ktb.sideproject.dto.auth.req.SignupRequest;
 import org.ktb.sideproject.dto.user.req.NicknameUpdateRequest;
 import org.ktb.sideproject.dto.user.req.PasswordUpdateRequest;
 import org.ktb.sideproject.dto.user.req.ProfileImageUpdateRequest;
+import org.ktb.sideproject.dto.user.res.DuplicateCheckResponse;
 import org.ktb.sideproject.dto.user.res.UserInfo;
 import org.ktb.sideproject.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -28,14 +29,41 @@ public class UserController {
         return ResponseEntity.ok("회원가입이 완료 되었습니다.");
     }
 
+    // 이메일 중복 체크
+    @GetMapping("/email/check")
+    public ResponseEntity<DuplicateCheckResponse> checkEmail(@RequestParam String email) {
+        boolean available = userService.isEmailAvailable(email);
+
+        if (!available) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new DuplicateCheckResponse(false));
+        }
+
+        return ResponseEntity.ok(new DuplicateCheckResponse(true));
+    }
+
+    // 닉네임 중복 체크
+    @GetMapping("/nickname/check")
+    public ResponseEntity<DuplicateCheckResponse> checkNickname(@RequestParam String nickname) {
+        boolean available = userService.isNicknameAvailable(nickname);
+
+        if (!available) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new DuplicateCheckResponse(false));
+        }
+
+        return ResponseEntity.ok(new DuplicateCheckResponse(true));
+    }
+
     // 회원정보 조회
     @GetMapping("/{userId}")
     public ResponseEntity<UserInfo> getUser(
             @PathVariable Long userId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        if(!userDetails.getUserId().equals(userId)) {
+            @AuthenticationPrincipal Long authUserId) {
+        if(!authUserId.equals(userId)) {
             throw new IllegalArgumentException("본인 정보만 조회할 수 있습니다.");
         }
+
         UserInfo userInfo = userService.getUser(userId);
         return ResponseEntity.ok(userInfo);
     }
@@ -45,8 +73,8 @@ public class UserController {
     public ResponseEntity<Void> updatePassword(
             @PathVariable Long userId,
             @Valid @RequestBody PasswordUpdateRequest passwordUpdateRequest,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        if(!userDetails.getUserId().equals(userId)) {
+            @AuthenticationPrincipal Long authUserId) {
+        if(!authUserId.equals(userId)) {
             throw new IllegalArgumentException("본인 정보만 수정할 수 있습니다.");
         }
         userService.updatePassword(userId, passwordUpdateRequest);
@@ -58,8 +86,8 @@ public class UserController {
     public ResponseEntity<UserInfo> updateNickname(
             @PathVariable Long userId,
             @Valid @RequestBody NicknameUpdateRequest nicknameUpdateRequest,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        if(!userDetails.getUserId().equals(userId)) {
+            @AuthenticationPrincipal Long authUserId) {
+        if(!authUserId.equals(userId)) {
             throw new IllegalArgumentException("본인 정보만 수정할 수 있습니다.");
         }
         UserInfo userInfo = userService.updateNickname(userId, nicknameUpdateRequest);
@@ -70,8 +98,8 @@ public class UserController {
     public ResponseEntity<UserInfo> updateProfileImage(
             @PathVariable Long userId,
             @Valid @RequestBody ProfileImageUpdateRequest profileImageUpdateRequest,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        if(!userDetails.getUserId().equals(userId)) {
+            @AuthenticationPrincipal Long authUserId) {
+        if(!authUserId.equals(userId)) {
             throw new IllegalArgumentException("본인 정보만 수정할 수 있습니다.");
         }
         UserInfo userInfo = userService.updateProfileImage(userId, profileImageUpdateRequest);
@@ -81,8 +109,8 @@ public class UserController {
     @DeleteMapping("/{userId}")
     public ResponseEntity<Void> deleteUser(
             @PathVariable Long userId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        if(!userDetails.getUserId().equals(userId)) {
+            @AuthenticationPrincipal Long authUserId) {
+        if(!authUserId.equals(userId)) {
             throw new IllegalArgumentException("본인 정보만 삭제할 수 있습니다.");
         }
         userService.deleteUser(userId);

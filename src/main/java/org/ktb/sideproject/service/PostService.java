@@ -12,7 +12,7 @@ public interface PostService {
     // 게시글 목록 조회
     PostListResponse getPostList(Long cursor, int size);
     // 게시글 상세 조회
-    PostDetailResponse getPost(Long postId);
+    PostDetailResponse getPost(Long postId, Long userId);
     // 게시글 수정
     PostUpdateResponse updatePost(Long userId, Long postId, PostUpdateRequest request);
     // 게시글 삭제

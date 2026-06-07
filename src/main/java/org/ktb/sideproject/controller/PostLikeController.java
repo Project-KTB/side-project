@@ -1,7 +1,6 @@
 package org.ktb.sideproject.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.ktb.sideproject.auth.CustomUserDetails;
 import org.ktb.sideproject.dto.like.res.PostLikeResponse;
 import org.ktb.sideproject.service.PostLikeService;
 import org.springframework.http.ResponseEntity;
@@ -19,9 +18,9 @@ public class PostLikeController {
     @PostMapping("/{postId}/likes")
     public ResponseEntity<PostLikeResponse> likePost(
             @PathVariable Long postId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Long userId = userDetails.getUserId();
-        PostLikeResponse postLikeResponse = postLikeService.likePost(userId, postId);
+            @AuthenticationPrincipal Long authUserId) {
+
+        PostLikeResponse postLikeResponse = postLikeService.likePost(authUserId, postId);
         return ResponseEntity.ok(postLikeResponse);
     }
 
@@ -29,9 +28,8 @@ public class PostLikeController {
     @DeleteMapping("/{postId}/likes")
     public ResponseEntity<PostLikeResponse> unlikePost(
             @PathVariable Long postId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Long userId = userDetails.getUserId();
-        PostLikeResponse postLikeResponse = postLikeService.unlikePost(userId, postId);
+            @AuthenticationPrincipal Long authUserId) {
+        PostLikeResponse postLikeResponse = postLikeService.unlikePost(authUserId, postId);
         return ResponseEntity.ok(postLikeResponse);
     }
 }

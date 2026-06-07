@@ -2,7 +2,6 @@ package org.ktb.sideproject.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.ktb.sideproject.auth.CustomUserDetails;
 import org.ktb.sideproject.dto.post.req.PostCreateRequest;
 import org.ktb.sideproject.dto.post.req.PostUpdateRequest;
 import org.ktb.sideproject.dto.post.res.PostDetailResponse;
@@ -21,10 +20,9 @@ public class PostController {
     // 게시글 생성
     @PostMapping
     public ResponseEntity<PostDetailResponse> createPost(
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal Long authUserId,
             @Valid @RequestBody PostCreateRequest request) {
-        Long userId = userDetails.getUserId();
-        PostDetailResponse postDetailResponse = postService.createPost(userId, request);
+        PostDetailResponse postDetailResponse = postService.createPost(authUserId, request);
         return ResponseEntity.ok(postDetailResponse);
     }
 
@@ -43,8 +41,9 @@ public class PostController {
     // 게시글 상세 조회
     @GetMapping("/{postId}")
     public ResponseEntity<PostDetailResponse> getPost(
-            @PathVariable Long postId) {
-        PostDetailResponse  postDetailResponse = postService.getPost(postId);
+            @PathVariable Long postId,
+            @AuthenticationPrincipal Long authUserId) {
+        PostDetailResponse  postDetailResponse = postService.getPost(postId, authUserId);
         return ResponseEntity.ok(postDetailResponse);
     }
 
@@ -52,10 +51,9 @@ public class PostController {
     @PatchMapping("/{postId}")
     public ResponseEntity<PostUpdateResponse> updatePost(
             @PathVariable Long postId,
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal Long authUserId,
             @Valid @RequestBody PostUpdateRequest request) {
-        Long userId = userDetails.getUserId();
-        PostUpdateResponse postUpdateResponse = postService.updatePost(userId, postId, request);
+        PostUpdateResponse postUpdateResponse = postService.updatePost(authUserId, postId, request);
         return ResponseEntity.ok(postUpdateResponse);
     }
 
@@ -63,9 +61,8 @@ public class PostController {
     @DeleteMapping("/{postId}")
     public ResponseEntity<Void> deletePost(
             @PathVariable Long postId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Long userId = userDetails.getUserId();
-        postService.deletePost(userId, postId);
+            @AuthenticationPrincipal Long authUserId) {
+        postService.deletePost(authUserId, postId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,36 +1,30 @@
 package org.ktb.sideproject.entity;
 
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 
 @Entity
-@Table(
-        name = "PostLike",
-        uniqueConstraints = @UniqueConstraint(
-                name = "IDX_LIKE_USER_POST",
-                columnNames = {"userId", "postId"} // 유니크 인덱스 반영
-        )
-)
+@Table(name = "PostLike")
 @Getter
-@RequiredArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PostLike {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "likeId", nullable = false)
-    private Long id;
 
+    @EmbeddedId
+    private PostLikeId id;
+
+    @MapsId("userId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "userId", nullable = false)
     private User user;
 
+    @MapsId("postId")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "postId", nullable = false)
     private Post post;
 
     @Builder
     public PostLike(User user, Post post) {
+        this.id = new PostLikeId(user.getId(), post.getId());
         this.user = user;
         this.post = post;
     }

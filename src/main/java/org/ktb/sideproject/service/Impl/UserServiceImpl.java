@@ -25,23 +25,34 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void signup(SignupRequest signupRequest) {
 
-        if(userRepository.existsByEmail(signupRequest.email())){
+        if(!isEmailAvailable(signupRequest.email())){
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
-        if(userRepository.existsByNickname(signupRequest.nickname())){
+        if(!isNicknameAvailable(signupRequest.nickname())){
             throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
         }
 
-        // 비밀번호 확인 값 일치 여
 
         User user = User.builder()
                 .email(signupRequest.email())
                 .password(passwordEncoder.encode(signupRequest.password()))
                 .nickname(signupRequest.nickname())
-                .profileImage("default-profile.png") // 나중에 이미지 S3 추가시 변경
+                .profileImage("default-profile.png") // 나중에 이미지 추가시 변경
                 .build();
 
         userRepository.save(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isEmailAvailable(String email) {
+        return !userRepository.existsByEmail(email);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isNicknameAvailable(String nickname) {
+        return !userRepository.existsByNickname(nickname);
     }
 
     @Override

@@ -2,14 +2,15 @@ package org.ktb.sideproject.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.ktb.sideproject.auth.CustomUserDetails;
 import org.ktb.sideproject.dto.comment.req.CommentCreateRequest;
 import org.ktb.sideproject.dto.comment.req.CommentUpdateRequest;
+import org.ktb.sideproject.dto.comment.res.CommentListResponse;
 import org.ktb.sideproject.dto.comment.res.CommentResponse;
 import org.ktb.sideproject.service.CommentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
 
 @RestController
 @RequestMapping("/comments")
@@ -18,14 +19,21 @@ public class CommentController {
 
     private final CommentService commentService;
 
+    // 댓글 조회
+    @GetMapping("/{postId}")
+    public ResponseEntity<CommentListResponse> getComments(
+            @PathVariable Long postId) {
+        CommentListResponse commentListResponse = commentService.getComments(postId);
+
+        return ResponseEntity.ok(commentListResponse);
+    }
     // 댓글 작성
     @PostMapping("/{postId}")
     public ResponseEntity<CommentResponse> createComment(
             @PathVariable Long postId,
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal Long authUserId,
             @Valid @RequestBody CommentCreateRequest request) {
-        Long userId = userDetails.getUserId();
-        CommentResponse commentResponse = commentService.createComment(userId, postId, request);
+        CommentResponse commentResponse = commentService.createComment(authUserId, postId, request);
         return ResponseEntity.ok(commentResponse);
     }
 
@@ -33,10 +41,9 @@ public class CommentController {
     @PatchMapping("/{commentId}")
     public ResponseEntity<CommentResponse> updateComment(
             @PathVariable Long commentId,
-            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @AuthenticationPrincipal Long authUserId,
             @Valid @RequestBody CommentUpdateRequest request) {
-        Long userId = userDetails.getUserId();
-        CommentResponse commentResponse = commentService.updateComment(userId, commentId, request);
+        CommentResponse commentResponse = commentService.updateComment(authUserId, commentId, request);
         return ResponseEntity.ok(commentResponse);
     }
 
@@ -44,9 +51,8 @@ public class CommentController {
     @DeleteMapping("/{commentId}")
     public ResponseEntity<Void> deleteComment(
             @PathVariable Long commentId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        Long userId = userDetails.getUserId();
-        commentService.deleteComment(userId, commentId);
+            @AuthenticationPrincipal Long authUserId) {
+        commentService.deleteComment(authUserId, commentId);
         return ResponseEntity.noContent().build();
     }
 }

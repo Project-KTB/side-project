@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "Post")
 @Getter
-@RequiredArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Post {
 
     @Id
@@ -59,6 +59,10 @@ public class Post {
         if (content != null && !content.isBlank()) {
             this.content = content;
         }
+    }
+
+    public void increaseViewsCount() {
+        this.viewsCount++;
     }
 
     public void increaseCommentsCount() {

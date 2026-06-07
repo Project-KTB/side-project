@@ -10,6 +10,7 @@ import org.ktb.sideproject.dto.post.res.PostDetailResponse;
 import org.ktb.sideproject.dto.post.res.PostUpdateResponse;
 import org.ktb.sideproject.entity.Post;
 import org.ktb.sideproject.entity.User;
+import org.ktb.sideproject.repository.PostLikeRepository;
 import org.ktb.sideproject.repository.PostRepository;
 import org.ktb.sideproject.repository.UserRepository;
 import org.ktb.sideproject.service.PostService;
@@ -27,6 +28,7 @@ public class PostServiceImpl implements PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final PostLikeRepository postLikeRepository;
 
     // 게시글 생성
     @Override
@@ -45,7 +47,7 @@ public class PostServiceImpl implements PostService {
 
         Post currentPost = postRepository.save(post);
 
-        return PostDetailResponse.from(currentPost);
+        return PostDetailResponse.from(currentPost, false);
     }
 
     // 게시글 목록 조회
@@ -79,6 +81,7 @@ public class PostServiceImpl implements PostService {
                 ? posts.getLast().getId()
                 : null;
 
+        // ⭐️게시글 최적화 쿼리 작성하기
         List<PostListInfo> postListInfos = posts.stream()
                 .map(post -> new PostListInfo(
                         post.getId(),
@@ -86,7 +89,10 @@ public class PostServiceImpl implements PostService {
                         post.getLikesCount(),
                         post.getCommentsCount(),
                         post.getViewsCount(),
-                        post.getCreatedAt()
+                        post.getCreatedAt(),
+                        post.getUser().getId(),
+                        post.getUser().getNickname(),
+                        post.getUser().getProfileImage()
                 ))
                 .toList();
 
@@ -98,13 +104,14 @@ public class PostServiceImpl implements PostService {
 
     // 게시글 상세 조회
     @Override
-    @Transactional(readOnly = true)
-    public PostDetailResponse getPost(Long postId) {
-
+    @Transactional() //readOnly = true 제거 이유 뷰 카운트 증가
+                     // 나중에 리포지토리에 커스텀 쿼리로 동시성 제어 및 이 메소드는 readOnly만 하게 하기
+    public PostDetailResponse getPost(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
-
-        return PostDetailResponse.from(post);
+        boolean liked = postLikeRepository.existsByUserIdAndPostId(userId, postId);
+        post.increaseViewsCount(); // 동시성 문제 확인해야함
+        return PostDetailResponse.from(post, liked);
     }
 
     // 게시글 수정

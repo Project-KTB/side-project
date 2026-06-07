@@ -8,6 +8,9 @@ public record PostListInfo(
         int likesCount,
         int commentsCount,
         int viewsCount,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Long authorId,
+        String authorNickname,
+        String authorProfileImage
 ) {
 }

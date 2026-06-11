@@ -150,7 +150,7 @@ public class ImageServiceImpl implements ImageService {
             Files.createDirectories(savePath.getParent());
             file.transferTo(savePath);
         } catch (IOException e) {
-            throw new CustomException(ErrorCode.IMAGE_SAVE_FAILED);
+            throw new CustomException(ErrorCode.IMAGE_SAVE_FAILED, e);
         }
 
         return new StoredImage(storageKey, imageUrl);
@@ -162,7 +162,7 @@ public class ImageServiceImpl implements ImageService {
         try {
             Files.deleteIfExists(imagePath);
         } catch (IOException e) {
-            throw new CustomException(ErrorCode.IMAGE_DELETE_FAILED);
+            throw new CustomException(ErrorCode.IMAGE_DELETE_FAILED, e);
         }
     }
 

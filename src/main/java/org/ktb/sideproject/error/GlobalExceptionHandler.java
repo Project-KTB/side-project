@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @RestControllerAdvice
 @Slf4j
@@ -45,7 +46,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({
             MethodArgumentTypeMismatchException.class,
-            MissingServletRequestParameterException.class
+            MissingServletRequestParameterException.class,
+            MissingServletRequestPartException.class
     })
     public ResponseEntity<ErrorResponse> handleInvalidTypeException(Exception e) {
         return ResponseEntity

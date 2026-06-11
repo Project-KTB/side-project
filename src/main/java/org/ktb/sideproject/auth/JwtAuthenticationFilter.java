@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -19,6 +20,7 @@ import java.util.Collections;
 
 @Component
 @RequiredArgsConstructor    // 요구하는 의존성 생성자 주입 어노테이션
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;  // JWT 생성/검증/파싱
@@ -41,6 +43,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
+        } else if (accessToken != null) {
+            log.info("[TOKEN_AUTH] Access Token 검증 실패 또는 만료. method={}, uri={}",
+                    request.getMethod(), request.getRequestURI());
         }
 
         filterChain.doFilter(request, response);

@@ -5,6 +5,8 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.time.LocalDateTime;
 
 @Entity
@@ -45,6 +47,9 @@ public class Post {
     @JoinColumn(name = "userId", nullable = false)
     private User user;
 
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostImage> images = new ArrayList<>();
+
     @Builder
     public Post(String title, String content, User user) {
         this.title = title;
@@ -59,6 +64,16 @@ public class Post {
         if (content != null && !content.isBlank()) {
             this.content = content;
         }
+    }
+
+    public void addImage(PostImage image) {
+        images.add(image);
+        image.attachTo(this);
+    }
+
+    public void removeImage(PostImage image) {
+        images.remove(image);
+        image.detach();
     }
 
     public void increaseViewsCount() {

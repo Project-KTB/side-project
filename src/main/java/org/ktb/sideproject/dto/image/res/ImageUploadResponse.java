@@ -4,6 +4,7 @@ public record ImageUploadResponse(
         Long imageId,
         String originName,
         String imageName,
-        String imageUrl
+        String imageUrl,
+        String storageKey
 ) {
 }

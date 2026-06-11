@@ -65,7 +65,6 @@ public class SeedConfig {
                 .email(email)
                 .password(passwordEncoder.encode(SEED_PASSWORD))
                 .nickname(nickname)
-                .profileImage("default-profile.png")
                 .build();
 
         return userRepository.save(user);

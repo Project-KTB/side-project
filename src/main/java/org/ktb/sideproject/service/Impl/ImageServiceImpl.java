@@ -2,10 +2,12 @@ package org.ktb.sideproject.service.Impl;
 
 import lombok.RequiredArgsConstructor;
 import org.ktb.sideproject.dto.image.res.ImageUploadResponse;
-import org.ktb.sideproject.entity.Image;
-import org.ktb.sideproject.entity.Post;
-import org.ktb.sideproject.repository.ImageRepository;
-import org.ktb.sideproject.repository.PostRepository;
+import org.ktb.sideproject.entity.PostImage;
+import org.ktb.sideproject.entity.ProfileImage;
+import org.ktb.sideproject.error.CustomException;
+import org.ktb.sideproject.error.ErrorCode;
+import org.ktb.sideproject.repository.PostImageRepository;
+import org.ktb.sideproject.repository.ProfileImageRepository;
 import org.ktb.sideproject.service.ImageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -34,8 +36,8 @@ public class ImageServiceImpl implements ImageService {
     );
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp");
 
-    private final PostRepository postRepository;
-    private final ImageRepository imageRepository;
+    private final PostImageRepository postImageRepository;
+    private final ProfileImageRepository profileImageRepository;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -44,70 +46,83 @@ public class ImageServiceImpl implements ImageService {
     private String imageUrlPrefix;
 
     @Override
-    @Transactional
-    public ImageUploadResponse uploadImage(Long userId, Long postId, MultipartFile file) {
+    public ImageUploadResponse uploadPostImage(MultipartFile file) {
         validateImage(file);
-
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
-
-        if (!post.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("게시글 작성자만 이미지를 업로드할 수 있습니다.");
-        }
 
         String originName = file.getOriginalFilename();
         String extension = extractExtension(originName);
         String imageName = UUID.randomUUID() + "." + extension;
-        String storageKey = "images/" + LocalDate.now().format(DATE_PATH_FORMATTER) + "/" + imageName;
-        String imageUrl = normalizePrefix(imageUrlPrefix) + "/" + storageKey;
-        Path savePath = Path.of(uploadDir).resolve(storageKey).normalize();
-
-        try {
-            Files.createDirectories(savePath.getParent());
-            file.transferTo(savePath);
-        } catch (IOException e) {
-            throw new IllegalStateException("이미지 저장에 실패했습니다.", e);
-        }
-
-        Image image = imageRepository.save(new Image(originName, imageName, imageUrl, post));
+        StoredImage storedImage = storeImage(file, "post-images", imageName);
+        PostImage image = postImageRepository.save(new PostImage(
+                originName,
+                imageName,
+                storedImage.imageUrl(),
+                storedImage.storageKey()
+        ));
 
         return new ImageUploadResponse(
                 image.getId(),
                 image.getOriginName(),
                 image.getImageName(),
-                image.getImageUrl()
+                image.getImageUrl(),
+                image.getStorageKey()
         );
     }
 
     @Override
     @Transactional
-    public void deleteImage(Long userId, Long imageId) {
-        Image image = imageRepository.findById(imageId)
-                .orElseThrow(() -> new IllegalArgumentException("이미지를 찾을 수 없습니다."));
+    public ImageUploadResponse uploadProfileImage(MultipartFile file) {
+        validateImage(file);
 
-        if (!image.getPost().getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("게시글 작성자만 이미지를 삭제할 수 있습니다.");
+        String originName = file.getOriginalFilename();
+        String extension = extractExtension(originName);
+        String imageName = UUID.randomUUID() + "." + extension;
+        StoredImage storedImage = storeImage(file, "profile-images", imageName);
+        ProfileImage image = profileImageRepository.save(new ProfileImage(
+                originName,
+                imageName,
+                storedImage.imageUrl(),
+                storedImage.storageKey()
+        ));
+
+        return new ImageUploadResponse(
+                image.getId(),
+                image.getOriginName(),
+                image.getImageName(),
+                image.getImageUrl(),
+                image.getStorageKey()
+        );
+    }
+
+    @Override
+    @Transactional
+    public void deletePostImage(Long userId, Long imageId) {
+        PostImage image = postImageRepository.findById(imageId)
+                .orElseThrow(() -> new CustomException(ErrorCode.IMAGE_NOT_FOUND));
+
+        if (image.getPost() == null || !image.getPost().getUser().getId().equals(userId)) {
+            throw new CustomException(ErrorCode.IMAGE_ACCESS_DENIED, "게시글 작성자만 이미지를 삭제할 수 있습니다.");
         }
 
-        imageRepository.delete(image);
-        deleteImageFile(image.getImageUrl());
+        postImageRepository.delete(image);
+        deleteImageFile(image.getStorageKey());
     }
 
     private void validateImage(MultipartFile file) {
         // 이미지 존재 유무
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("이미지 파일을 첨부해주세요.");
+            throw new CustomException(ErrorCode.IMAGE_FILE_REQUIRED);
         }
 
         // 이미지 크기 제한
         if (file.getSize() > MAX_IMAGE_SIZE) {
-            throw new IllegalArgumentException("이미지 파일은 5MB 이하만 업로드할 수 있습니다.");
+            throw new CustomException(ErrorCode.IMAGE_SIZE_EXCEEDED);
         }
 
-        // 파일 확장자 확인
+        // Content-Type 확인
         String contentType = file.getContentType();
         if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            throw new IllegalArgumentException("jpg, png, gif, webp 이미지만 업로드할 수 있습니다.");
+            throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT_TYPE);
         }
 
         extractExtension(file.getOriginalFilename());
@@ -115,28 +130,39 @@ public class ImageServiceImpl implements ImageService {
 
     private String extractExtension(String filename) {
         if (filename == null || filename.isBlank() || !filename.contains(".")) {
-            throw new IllegalArgumentException("이미지 파일 확장자가 필요합니다.");
+            throw new CustomException(ErrorCode.IMAGE_EXTENSION_REQUIRED);
         }
 
         String extension = filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new IllegalArgumentException("지원하지 않는 이미지 확장자입니다.");
+            throw new CustomException(ErrorCode.INVALID_IMAGE_EXTENSION);
         }
 
         return extension;
     }
 
-    private void deleteImageFile(String imageUrl) {
-        String prefix = normalizePrefix(imageUrlPrefix);
-        String storageKey = imageUrl.startsWith(prefix + "/")
-                ? imageUrl.substring(prefix.length() + 1)
-                : imageUrl;
+    private StoredImage storeImage(MultipartFile file, String directory, String imageName) {
+        String storageKey = directory + "/" + LocalDate.now().format(DATE_PATH_FORMATTER) + "/" + imageName;
+        String imageUrl = normalizePrefix(imageUrlPrefix) + "/" + storageKey;
+        Path savePath = Path.of(uploadDir).resolve(storageKey).normalize();
+
+        try {
+            Files.createDirectories(savePath.getParent());
+            file.transferTo(savePath);
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.IMAGE_SAVE_FAILED);
+        }
+
+        return new StoredImage(storageKey, imageUrl);
+    }
+
+    private void deleteImageFile(String storageKey) {
         Path imagePath = Path.of(uploadDir).resolve(storageKey).normalize();
 
         try {
             Files.deleteIfExists(imagePath);
         } catch (IOException e) {
-            throw new IllegalStateException("이미지 파일 삭제에 실패했습니다.", e);
+            throw new CustomException(ErrorCode.IMAGE_DELETE_FAILED);
         }
     }
 
@@ -148,5 +174,11 @@ public class ImageServiceImpl implements ImageService {
         return prefix.endsWith("/")
                 ? prefix.substring(0, prefix.length() - 1)
                 : prefix;
+    }
+
+    private record StoredImage(
+            String storageKey,
+            String imageUrl
+    ) {
     }
 }

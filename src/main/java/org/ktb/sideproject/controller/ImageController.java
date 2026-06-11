@@ -15,22 +15,28 @@ public class ImageController {
 
     private final ImageService imageService;
 
-    // 이미지 업로드
-    @PostMapping("/posts/{postId}")
-    public ResponseEntity<ImageUploadResponse> uploadImage(
-            @AuthenticationPrincipal Long authUserId,
-            @PathVariable Long postId,
+    // 게시글 이미지 업로드
+    @PostMapping("/posts")
+    public ResponseEntity<ImageUploadResponse> uploadPostImage(
             @RequestParam("image") MultipartFile multipartFile) {
-        ImageUploadResponse imageUploadResponse = imageService.uploadImage(authUserId, postId, multipartFile);
+        ImageUploadResponse imageUploadResponse = imageService.uploadPostImage(multipartFile);
         return ResponseEntity.ok(imageUploadResponse);
     }
 
-    // 이미지 삭제
-    @DeleteMapping("/{imageId}")
-    public ResponseEntity<Void> deleteImage(
+    // 프로필 이미지 업로드
+    @PostMapping("/profile")
+    public ResponseEntity<ImageUploadResponse> uploadProfileImage(
+            @RequestParam("image") MultipartFile multipartFile) {
+        ImageUploadResponse imageUploadResponse = imageService.uploadProfileImage(multipartFile);
+        return ResponseEntity.ok(imageUploadResponse);
+    }
+
+    // 게시글 이미지 삭제
+    @DeleteMapping("/posts/{imageId}")
+    public ResponseEntity<Void> deletePostImage(
             @AuthenticationPrincipal Long authUserId,
             @PathVariable Long imageId) {
-        imageService.deleteImage(authUserId, imageId);
+        imageService.deletePostImage(authUserId, imageId);
         return ResponseEntity.noContent().build();
     }
 }

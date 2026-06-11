@@ -2,7 +2,6 @@ package org.ktb.sideproject.dto.post.res;
 
 import org.ktb.sideproject.dto.image.ImageInfo;
 import org.ktb.sideproject.entity.Post;
-import org.ktb.sideproject.entity.User;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,9 +20,13 @@ public record PostDetailResponse(
         String authorProfileImage,
         Boolean liked,
         // 이미지 리스트 URL
-        List<ImageInfo> images;
+        List<ImageInfo> images
 ) {
-    public static PostDetailResponse from(Post post, Boolean liked) {
+    public static PostDetailResponse from(Post post, Boolean liked, String authorProfileImage) {
+        List<ImageInfo> images = post.getImages().stream()
+                .map(image -> new ImageInfo(image.getId(), image.getOriginName(), image.getImageUrl()))
+                .toList();
+
         return new PostDetailResponse(
                 post.getId(),
                 post.getTitle(),
@@ -34,9 +37,9 @@ public record PostDetailResponse(
                 post.getCreatedAt(),
                 post.getUser().getId(),
                 post.getUser().getNickname(),
-                post.getUser().getProfileImage(),
-                liked
-
+                authorProfileImage,
+                liked,
+                images
         );
     }
 }

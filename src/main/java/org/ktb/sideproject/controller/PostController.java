@@ -7,6 +7,8 @@ import org.ktb.sideproject.dto.post.req.PostUpdateRequest;
 import org.ktb.sideproject.dto.post.res.PostDetailResponse;
 import org.ktb.sideproject.dto.post.res.PostListResponse;
 import org.ktb.sideproject.dto.post.res.PostUpdateResponse;
+import org.ktb.sideproject.error.CustomException;
+import org.ktb.sideproject.error.ErrorCode;
 import org.ktb.sideproject.service.PostService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,12 +31,13 @@ public class PostController {
     // 게시글 목록 조회
     @GetMapping
     public ResponseEntity<PostListResponse> getPostList(
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "10") int size) {
         if(size <= 0) {
-            throw new IllegalArgumentException("size는 0보다 커야합니다.");
+            throw new CustomException(ErrorCode.INVALID_PAGINATION_PARAMETER);
         }
-        PostListResponse postListResponse = postService.getPostList(cursor, size);
+        PostListResponse postListResponse = postService.getPostList(keyword, cursor, size);
         return ResponseEntity.ok(postListResponse);
     }
 

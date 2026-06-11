@@ -9,15 +9,17 @@ public record CommentResponse(
         String content,
         LocalDateTime createdAt,
         Long authorId,
-        String authorNickname
+        String authorNickname,
+        String authorProfileImage
 ) {
-    public static CommentResponse from(Comment comment) {
+    public static CommentResponse from(Comment comment, String authorProfileImage) {
         return new CommentResponse(
                 comment.getId(),
                 comment.getContent(),
                 comment.getCreatedAt(),
                 comment.getUser().getId(),
-                comment.getUser().getNickname()
+                comment.getUser().getNickname(),
+                authorProfileImage
         );
     }
 }

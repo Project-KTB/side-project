@@ -1,30 +1,45 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
+
   application:
     name: side-project
 
   # DB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/side_project
-    username: root
-    password: 1234
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/side_project?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:1234}
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: ${JPA_DDL_AUTO:update}
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl # 카멜 케이스 컬럼명을 변환 없이 그대로 사용
-    show-sql: true # 콘솔 창에 JPA가 만든 SQL 쿼리를 보여줌 (개발용)
+    show-sql: ${JPA_SHOW_SQL:true}
     properties:
       hibernate:
-        format_sql: true
+        format_sql: ${HIBERNATE_FORMAT_SQL:true}
+        use_sql_comments: ${HIBERNATE_USE_SQL_COMMENTS:true}
+
+server:
+  port: ${SERVER_PORT:8080}
 
 logging:
   level:
-    org.hibernate.SQL: debug
+    org.hibernate.SQL: ${HIBERNATE_SQL_LOG_LEVEL:debug}
+
+app:
+  seed:
+    enabled: ${APP_SEED_ENABLED:true}
+
+file:
+  upload-dir: ${FILE_UPLOAD_DIR:uploads}
+  image-url-prefix: ${FILE_IMAGE_URL_PREFIX:/uploads}
 
 # JWT
 jwt:
-  secret: Tm5KRFFUWTBTMWsyTkhWck5qVXlPRFkyWlVrMk5IVnJOMGxMY3pkS1YwVTNTalpSTjB4RGJ6ZE1iVEEzV1U5Qk4xbDVUVGRhVjFrPQ==
-  access-token-exp-seconds: 300 # 5분
-  refresh-token-exp-seconds: 1209600 # 2주
+  secret: ${JWT_SECRET:Tm5KRFFUWTBTMWsyTkhWck5qVXlPRFkyWlVrMk5IVnJOMGxMY3pkS1YwVTNTalpSTjB4RGJ6ZE1iVEEzV1U5Qk4xbDVUVGRhVjFrPQ==}
+  access-token-exp-seconds: ${JWT_ACCESS_TOKEN_EXP_SECONDS:60}
+  refresh-token-exp-seconds: ${JWT_REFRESH_TOKEN_EXP_SECONDS:1209600}

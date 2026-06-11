@@ -8,7 +8,7 @@ import org.ktb.sideproject.dto.comment.res.CommentResponse;
 
 public interface CommentService {
     // 댓글 조회
-    CommentListResponse getComments(Long postId);
+    CommentListResponse getComments(Long postId, Long cursor, int size);
     // 댓글 작성
     CommentResponse createComment(Long userId, Long postId, CommentCreateRequest request);
 

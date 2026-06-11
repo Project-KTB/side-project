@@ -6,6 +6,8 @@ import org.ktb.sideproject.dto.comment.req.CommentCreateRequest;
 import org.ktb.sideproject.dto.comment.req.CommentUpdateRequest;
 import org.ktb.sideproject.dto.comment.res.CommentListResponse;
 import org.ktb.sideproject.dto.comment.res.CommentResponse;
+import org.ktb.sideproject.error.CustomException;
+import org.ktb.sideproject.error.ErrorCode;
 import org.ktb.sideproject.service.CommentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,8 +24,14 @@ public class CommentController {
     // 댓글 조회
     @GetMapping("/{postId}")
     public ResponseEntity<CommentListResponse> getComments(
-            @PathVariable Long postId) {
-        CommentListResponse commentListResponse = commentService.getComments(postId);
+            @PathVariable Long postId,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "10") int size) {
+        if(size <= 0) {
+            throw new CustomException(ErrorCode.INVALID_PAGINATION_PARAMETER);
+        }
+
+        CommentListResponse commentListResponse = commentService.getComments(postId, cursor, size);
 
         return ResponseEntity.ok(commentListResponse);
     }

@@ -27,9 +27,6 @@ public class User {
     @Column(unique = true, nullable = false, length = 10)
     private String nickname;
 
-    @Column(nullable = false)
-    private String profileImage;
-
     @CreationTimestamp
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -39,11 +36,10 @@ public class User {
     private LocalDateTime updatedAt;
 
     @Builder
-    public User(String email, String password, String nickname, String profileImage) {
+    public User(String email, String password, String nickname) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
-        this.profileImage = profileImage;
     }
 
     public void changePassword(String encodedPassword) {
@@ -53,11 +49,5 @@ public class User {
     public void changeNickname(String nickname) {
         this.nickname = nickname;
     }
-
-    public void changeProfileImage(String profileImage) {
-        this.profileImage = profileImage;
-    }
-
-
 
 }

@@ -10,7 +10,7 @@ public interface PostService {
     // 게시글 생성
     PostDetailResponse createPost(Long userId, PostCreateRequest request);
     // 게시글 목록 조회
-    PostListResponse getPostList(Long cursor, int size);
+    PostListResponse getPostList(String keyword, Long cursor, int size);
     // 게시글 상세 조회
     PostDetailResponse getPost(Long postId, Long userId);
     // 게시글 수정

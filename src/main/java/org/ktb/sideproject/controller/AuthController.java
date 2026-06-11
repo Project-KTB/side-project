@@ -4,6 +4,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.ktb.sideproject.dto.auth.LoginResult;
 import org.ktb.sideproject.dto.auth.ReissueResult;
 import org.ktb.sideproject.dto.auth.req.LoginRequest;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
 
     private final AuthService authService;
@@ -43,8 +45,12 @@ public class AuthController {
     public ResponseEntity<ReissueResponse> reissue(
             HttpServletResponse response,
             @CookieValue(name = "refreshToken", required = false) String refreshToken) {
+        log.info("[TOKEN_REISSUE] 토큰 재발급 요청 수신. hasRefreshToken={}", refreshToken != null);
+
         ReissueResult reissueResult = authService.reissueToken(refreshToken);
         setRefreshCookie(reissueResult.refreshToken(), response);
+
+        log.info("[TOKEN_REISSUE] 토큰 재발급 응답 완료");
 
         return ResponseEntity.ok(new ReissueResponse(reissueResult.accessToken()));
     }

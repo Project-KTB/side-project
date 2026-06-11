@@ -9,6 +9,8 @@ import org.ktb.sideproject.dto.user.req.PasswordUpdateRequest;
 import org.ktb.sideproject.dto.user.req.ProfileImageUpdateRequest;
 import org.ktb.sideproject.dto.user.res.DuplicateCheckResponse;
 import org.ktb.sideproject.dto.user.res.UserInfo;
+import org.ktb.sideproject.error.CustomException;
+import org.ktb.sideproject.error.ErrorCode;
 import org.ktb.sideproject.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -61,7 +63,7 @@ public class UserController {
             @PathVariable Long userId,
             @AuthenticationPrincipal Long authUserId) {
         if(!authUserId.equals(userId)) {
-            throw new IllegalArgumentException("본인 정보만 조회할 수 있습니다.");
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "본인 정보만 조회할 수 있습니다.");
         }
 
         UserInfo userInfo = userService.getUser(userId);
@@ -75,7 +77,7 @@ public class UserController {
             @Valid @RequestBody PasswordUpdateRequest passwordUpdateRequest,
             @AuthenticationPrincipal Long authUserId) {
         if(!authUserId.equals(userId)) {
-            throw new IllegalArgumentException("본인 정보만 수정할 수 있습니다.");
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "본인 정보만 수정할 수 있습니다.");
         }
         userService.updatePassword(userId, passwordUpdateRequest);
         return ResponseEntity.noContent().build();
@@ -88,7 +90,7 @@ public class UserController {
             @Valid @RequestBody NicknameUpdateRequest nicknameUpdateRequest,
             @AuthenticationPrincipal Long authUserId) {
         if(!authUserId.equals(userId)) {
-            throw new IllegalArgumentException("본인 정보만 수정할 수 있습니다.");
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "본인 정보만 수정할 수 있습니다.");
         }
         UserInfo userInfo = userService.updateNickname(userId, nicknameUpdateRequest);
         return ResponseEntity.ok(userInfo);
@@ -100,7 +102,7 @@ public class UserController {
             @Valid @RequestBody ProfileImageUpdateRequest profileImageUpdateRequest,
             @AuthenticationPrincipal Long authUserId) {
         if(!authUserId.equals(userId)) {
-            throw new IllegalArgumentException("본인 정보만 수정할 수 있습니다.");
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "본인 정보만 수정할 수 있습니다.");
         }
         UserInfo userInfo = userService.updateProfileImage(userId, profileImageUpdateRequest);
         return ResponseEntity.ok(userInfo);
@@ -111,7 +113,7 @@ public class UserController {
             @PathVariable Long userId,
             @AuthenticationPrincipal Long authUserId) {
         if(!authUserId.equals(userId)) {
-            throw new IllegalArgumentException("본인 정보만 삭제할 수 있습니다.");
+            throw new CustomException(ErrorCode.ACCESS_DENIED, "본인 정보만 삭제할 수 있습니다.");
         }
         userService.deleteUser(userId);
         return ResponseEntity.noContent().build();

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.ktb.sideproject.auth.JwtAuthenticationFilter;
 import org.ktb.sideproject.error.ErrorCode;
 import org.ktb.sideproject.error.ErrorResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -31,6 +32,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ObjectMapper objectMapper;
+
+    @Value("${app.cors.allowed-origins}")
+    private List<String> allowedOrigins;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -75,9 +79,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // 어떤 출처의 요청을 허용할지
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000"
-        ));
+        configuration.setAllowedOrigins(allowedOrigins);
 
         // 프론트에서 사용할 허용할 메소드
         configuration.setAllowedMethods(List.of(

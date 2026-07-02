@@ -1,12 +1,15 @@
 package org.ktb.sideproject.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.ktb.sideproject.dto.image.res.ImageUploadResponse;
 import org.ktb.sideproject.service.ImageService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/images")
@@ -15,10 +18,14 @@ public class ImageController {
 
     private final ImageService imageService;
 
+    @Value("${app.image-upload.enabled:true}")
+    private boolean imageUploadEnabled;
+
     // 게시글 이미지 업로드
     @PostMapping("/posts")
     public ResponseEntity<ImageUploadResponse> uploadPostImage(
             @RequestParam("image") MultipartFile multipartFile) {
+        assertImageUploadEnabled();
         ImageUploadResponse imageUploadResponse = imageService.uploadPostImage(multipartFile);
         return ResponseEntity.ok(imageUploadResponse);
     }
@@ -27,8 +34,15 @@ public class ImageController {
     @PostMapping("/profile")
     public ResponseEntity<ImageUploadResponse> uploadProfileImage(
             @RequestParam("image") MultipartFile multipartFile) {
+        assertImageUploadEnabled();
         ImageUploadResponse imageUploadResponse = imageService.uploadProfileImage(multipartFile);
         return ResponseEntity.ok(imageUploadResponse);
+    }
+
+    private void assertImageUploadEnabled() {
+        if (!imageUploadEnabled) {
+            throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Image upload is disabled for this deployment.");
+        }
     }
 
     // 게시글 이미지 삭제

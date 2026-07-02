@@ -36,6 +36,9 @@ public class SecurityConfig {
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
 
+    @Value("${app.image-upload.enabled:true}")
+    private boolean imageUploadEnabled;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -55,21 +58,34 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, accessDeniedException) ->
                                 writeErrorResponse(response, ErrorCode.ACCESS_DENIED))
                 )
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/auth").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/users").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/reissue").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/images/posts").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/images/profile").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/users/email/check").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/users/nickname/check").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/posts").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/posts/{postId}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/comments/{commentId}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .anyRequest().authenticated()
-                )
+                .authorizeHttpRequests(auth -> {
+                    auth
+                            .requestMatchers(HttpMethod.POST, "/auth").permitAll()
+                            .requestMatchers(HttpMethod.POST, "/users").permitAll()
+                            .requestMatchers(HttpMethod.POST, "/auth/reissue").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/health").permitAll();
+
+                    if (imageUploadEnabled) {
+                        auth
+                                .requestMatchers(HttpMethod.POST, "/images/posts").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/images/profile").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll();
+                    } else {
+                        auth
+                                .requestMatchers(HttpMethod.POST, "/images/posts").denyAll()
+                                .requestMatchers(HttpMethod.POST, "/images/profile").denyAll()
+                                .requestMatchers(HttpMethod.GET, "/uploads/**").denyAll();
+                    }
+
+                    auth
+                            .requestMatchers(HttpMethod.GET, "/users/email/check").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/users/nickname/check").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/posts").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/posts/{postId}").permitAll()
+                            .requestMatchers(HttpMethod.GET, "/comments/{commentId}").permitAll()
+                            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            .anyRequest().authenticated();
+                })
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

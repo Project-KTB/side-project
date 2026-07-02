@@ -10,7 +10,6 @@ spring:
       max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:5MB}
       max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:5MB}
 
-  # DB
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/side_project?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true}
@@ -41,6 +40,13 @@ app:
     enabled: ${APP_SEED_ENABLED:true}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  auth:
+    refresh-cookie:
+      secure: ${APP_REFRESH_COOKIE_SECURE:false}
+      same-site: ${APP_REFRESH_COOKIE_SAME_SITE:Lax}
+      domain: ${APP_REFRESH_COOKIE_DOMAIN:}
+  image-upload:
+    enabled: ${APP_IMAGE_UPLOAD_ENABLED:true}
 
 file:
   upload-dir: ${FILE_UPLOAD_DIR:uploads}

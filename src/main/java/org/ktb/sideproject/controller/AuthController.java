@@ -1,6 +1,5 @@
 package org.ktb.sideproject.controller;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,9 +10,15 @@ import org.ktb.sideproject.dto.auth.req.LoginRequest;
 import org.ktb.sideproject.dto.auth.res.LoginResponse;
 import org.ktb.sideproject.dto.auth.res.ReissueResponse;
 import org.ktb.sideproject.service.AuthService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.util.StringUtils;
+
+import java.time.Duration;
 
 @RestController
 @RequestMapping("/auth")
@@ -21,7 +26,21 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class AuthController {
 
+    private static final String REFRESH_COOKIE_NAME = "refreshToken";
+
     private final AuthService authService;
+
+    @Value("${jwt.refresh-token-exp-seconds:1209600}")
+    private long refreshTokenExpSeconds;
+
+    @Value("${app.auth.refresh-cookie.secure:false}")
+    private boolean refreshCookieSecure;
+
+    @Value("${app.auth.refresh-cookie.same-site:Lax}")
+    private String refreshCookieSameSite;
+
+    @Value("${app.auth.refresh-cookie.domain:}")
+    private String refreshCookieDomain;
 
     @PostMapping
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse response) {
@@ -58,18 +77,28 @@ public class AuthController {
 
 
     private void setRefreshCookie(String refreshToken, HttpServletResponse response) {
-        Cookie cookie = new Cookie("refreshToken", refreshToken);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(60 * 60 * 24 * 14);
-        response.addCookie(cookie);
+        addRefreshCookie(response, refreshToken, Duration.ofSeconds(refreshTokenExpSeconds));
     }
 
     private void deleteRefreshCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie("refreshToken", null);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        addRefreshCookie(response, "", Duration.ZERO);
+    }
+
+    private void addRefreshCookie(HttpServletResponse response, String value, Duration maxAge) {
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from(REFRESH_COOKIE_NAME, value)
+                .httpOnly(true)
+                .secure(refreshCookieSecure)
+                .path("/")
+                .maxAge(maxAge);
+
+        if (StringUtils.hasText(refreshCookieSameSite)) {
+            cookieBuilder.sameSite(refreshCookieSameSite.trim());
+        }
+
+        if (StringUtils.hasText(refreshCookieDomain)) {
+            cookieBuilder.domain(refreshCookieDomain.trim());
+        }
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookieBuilder.build().toString());
     }
 }

@@ -24,6 +24,7 @@ bin/
 *.ipr
 *.yml
 !src/main/resources/application*.yml
+!docker-compose*.yml
 .env
 .env.*
 out/

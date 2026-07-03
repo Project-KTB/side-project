@@ -28,7 +28,7 @@ public class UserController {
     @PostMapping
     public ResponseEntity<String> signup(@Valid @RequestBody SignupRequest signupRequest) {
         userService.signup(signupRequest);
-        return ResponseEntity.ok("회원가입이 완료 되었습니다.");
+        return ResponseEntity.status(HttpStatus.CREATED).body("회원가입이 완료 되었습니다.");
     }
 
     // 이메일 중복 체크

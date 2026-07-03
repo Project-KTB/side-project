@@ -23,6 +23,7 @@ bin/
 *.iml
 *.ipr
 *.yml
+*.jar
 !src/main/resources/application*.yml
 !docker-compose*.yml
 .env

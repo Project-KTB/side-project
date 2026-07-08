@@ -1,23 +1,71 @@
+# 공통 backend 설정
+# 실제 서비스가 아니라 YAML anchor로 blue/green 서비스가 재사용함
+x-backend-common: &backend-common
+  # Spring Boot 앱 환경변수 파일
+  # DB_URL, JWT_SECRET 같은 민감정보는 GitHub에 올리지 않고 EC2의 .env에만 둠
+  env_file:
+    - .env
+  environment:
+    SPRING_PROFILES_ACTIVE: prod
+    SERVER_PORT: 8080
+
+  # backend 컨테이너는 호스트 포트를 직접 열지 않음
+  # nginx-proxy 컨테이너만 외부에 8080을 열고 내부 Docker 네트워크로 backend에 접근함
+  expose:
+    - "8080"
+
+  restart: unless-stopped
+
+  # 컨테이너가 떠 있는지뿐 아니라 Spring Boot /api/health가 응답하는지 확인
+  healthcheck:
+    test: ["CMD-SHELL", "curl -fsS http://localhost:8080${SERVER_SERVLET_CONTEXT_PATH:-/api}/health || exit 1"]
+    interval: 30s
+    timeout: 5s
+    retries: 5
+    start_period: 60s
+
+  # 컨테이너 로그가 무한정 쌓이지 않게 회전 설정
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
 services:
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: side-project-backend
-    env_file:
-      - .env
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      SERVER_PORT: 8080
+  # Blue 환경
+  # deploy.env의 BLUE_IMAGE_TAG 값을 사용함
+  backend-blue:
+    <<: *backend-common
+    image: ${REGISTRY_URL}/side-project-backend:${BLUE_IMAGE_TAG:-latest}
+    container_name: side-project-backend-blue
+
+  # Green 환경
+  # deploy.env의 GREEN_IMAGE_TAG 값을 사용함
+  backend-green:
+    <<: *backend-common
+    image: ${REGISTRY_URL}/side-project-backend:${GREEN_IMAGE_TAG:-latest}
+    container_name: side-project-backend-green
+
+  # ALB가 바라보는 단일 진입점
+  # ALB -> EC2:8080 -> nginx-proxy -> backend-blue 또는 backend-green
+  nginx-proxy:
+    image: nginx:1.27-alpine
+    container_name: side-project-nginx-proxy
     ports:
-      - "${HOST_BACKEND_PORT:-8080}:8080"
+      - "${NGINX_HOST_PORT:-8080}:80"
+    volumes:
+      # deploy script가 nginx.blue.conf 또는 nginx.green.conf를 nginx.conf로 복사함
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
+
+    # nginx를 거쳐 실제 backend health endpoint까지 도달하는지 확인
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080${SERVER_SERVLET_CONTEXT_PATH:-/api}/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost/api/health >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
-      start_period: 60s
+      start_period: 10s
+
     logging:
       driver: json-file
       options:

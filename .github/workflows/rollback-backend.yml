@@ -1,0 +1,164 @@
+name: Rollback Backend
+
+# 수동 rollback 전용 workflow
+# GitHub Actions 화면에서 Run workflow로 실행
+on:
+  workflow_dispatch:
+    inputs:
+      target_color:
+        description: "Rollback target color. auto means opposite of current ACTIVE_COLOR."
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - blue
+          - green
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+
+    steps:
+      # EC2 SSH 접속 준비
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key.pem
+          chmod 600 ~/.ssh/ec2_key.pem
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      # EC2에서 nginx 트래픽을 이전 color로 돌림
+      - name: Rollback on EC2
+        run: |
+          ssh -i ~/.ssh/ec2_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'bash -s' << 'EOF'
+            set -Eeuo pipefail
+
+            APP_DIR=/opt/side-project
+            INPUT_TARGET="${{ inputs.target_color }}"
+
+            cd "$APP_DIR"
+
+            # deploy.env에는 현재 ACTIVE_COLOR와 blue/green 이미지 태그가 저장되어 있어야 함
+            if [ ! -f deploy.env ]; then
+              echo "deploy.env does not exist. Cannot determine rollback target."
+              exit 1
+            fi
+
+            if [ ! -f docker-compose.prod.yml ]; then
+              echo "docker-compose.prod.yml does not exist."
+              exit 1
+            fi
+
+            if [ ! -f nginx/nginx.blue.conf ] || [ ! -f nginx/nginx.green.conf ]; then
+              echo "nginx blue/green config files do not exist."
+              exit 1
+            fi
+
+            # deploy.env에 key=value를 추가하거나 갱신하는 함수
+            set_env() {
+              local key="$1"
+              local value="$2"
+
+              if grep -q "^${key}=" deploy.env; then
+                sed -i "s|^${key}=.*|${key}=${value}|" deploy.env
+              else
+                echo "${key}=${value}" >> deploy.env
+              fi
+            }
+
+            # deploy.env를 적용해서 docker compose 실행
+            compose() {
+              docker compose --env-file deploy.env -f docker-compose.prod.yml "$@"
+            }
+
+            # 현재 active color 확인
+            CURRENT="$(grep -E '^ACTIVE_COLOR=' deploy.env | cut -d '=' -f 2 || true)"
+
+            # ACTIVE_COLOR가 없으면 nginx.conf에서 현재 연결된 backend를 추론
+            if [ "$CURRENT" != "blue" ] && [ "$CURRENT" != "green" ]; then
+              if [ -f nginx/nginx.conf ] && grep -q "side-project-backend-blue" nginx/nginx.conf; then
+                CURRENT="blue"
+              elif [ -f nginx/nginx.conf ] && grep -q "side-project-backend-green" nginx/nginx.conf; then
+                CURRENT="green"
+              else
+                echo "Cannot determine current active color."
+                exit 1
+              fi
+            fi
+
+            # auto이면 현재 active의 반대 color로 rollback
+            if [ "$INPUT_TARGET" = "auto" ]; then
+              if [ "$CURRENT" = "blue" ]; then
+                TARGET="green"
+              else
+                TARGET="blue"
+              fi
+            else
+              TARGET="$INPUT_TARGET"
+            fi
+
+            if [ "$TARGET" != "blue" ] && [ "$TARGET" != "green" ]; then
+              echo "Invalid rollback target: $TARGET"
+              exit 1
+            fi
+
+            if [ "$TARGET" = "$CURRENT" ]; then
+              echo "Target color is already active: $TARGET"
+              exit 0
+            fi
+
+            echo "Current active color: $CURRENT"
+            echo "Rollback target color: $TARGET"
+
+            # rollback 대상 컨테이너가 꺼져 있으면 다시 실행
+            compose up -d "backend-$TARGET"
+
+            # 트래픽을 돌리기 전 rollback 대상 컨테이너 health check
+            echo "Checking backend-$TARGET health..."
+            HEALTH_OK="false"
+            for i in $(seq 1 30); do
+              if docker exec "side-project-backend-$TARGET" sh -c 'curl -fsS "http://localhost:8080${SERVER_SERVLET_CONTEXT_PATH:-/api}/health" >/dev/null'; then
+                HEALTH_OK="true"
+                break
+              fi
+              sleep 3
+            done
+
+            if [ "$HEALTH_OK" != "true" ]; then
+              echo "Rollback target health check failed."
+              compose logs --tail=100 "backend-$TARGET" || true
+              exit 1
+            fi
+
+            # nginx 설정을 rollback target으로 교체해서 트래픽 전환
+            echo "Switching Nginx traffic to $TARGET..."
+            cp "nginx/nginx.$TARGET.conf" nginx/nginx.conf
+            compose up -d nginx-proxy
+            docker exec side-project-nginx-proxy nginx -t
+            docker exec side-project-nginx-proxy nginx -s reload || compose restart nginx-proxy
+
+            # nginx를 거친 전체 경로 health check
+            NGINX_PORT="$(grep -E '^NGINX_HOST_PORT=' deploy.env | cut -d '=' -f 2 || true)"
+            NGINX_PORT="${NGINX_PORT:-8080}"
+
+            echo "Checking Nginx routed health..."
+            ROUTE_OK="false"
+            for i in $(seq 1 10); do
+              if curl -fsS "http://localhost:${NGINX_PORT}/api/health" >/dev/null; then
+                ROUTE_OK="true"
+                break
+              fi
+              sleep 2
+            done
+
+            if [ "$ROUTE_OK" != "true" ]; then
+              echo "Rollback traffic switch check failed."
+              exit 1
+            fi
+
+            # rollback 성공 후 active color 갱신
+            set_env ACTIVE_COLOR "$TARGET"
+
+            echo "Rollback completed. Active color: $TARGET"
+          EOF

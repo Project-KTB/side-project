@@ -1,4 +1,5 @@
 HELP.md
+.DS_Store
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
@@ -24,6 +25,7 @@ bin/
 *.ipr
 *.yml
 *.jar
+!.github/workflows/*.yml
 !src/main/resources/application*.yml
 !docker-compose*.yml
 .env

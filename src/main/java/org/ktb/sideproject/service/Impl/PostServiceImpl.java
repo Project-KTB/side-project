@@ -22,15 +22,12 @@ import org.ktb.sideproject.repository.PostRepository;
 import org.ktb.sideproject.repository.ProfileImageRepository;
 import org.ktb.sideproject.repository.UserRepository;
 import org.ktb.sideproject.service.PostService;
-import org.springframework.beans.factory.annotation.Value;
+import org.ktb.sideproject.service.storage.ImageStorageService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -48,12 +45,7 @@ public class PostServiceImpl implements PostService {
     private final PostImageRepository postImageRepository;
     private final ProfileImageRepository profileImageRepository;
     private final CommentRepository commentRepository;
-
-    @Value("${file.image-url-prefix}")
-    private String imageUrlPrefix;
-
-    @Value("${file.upload-dir}")
-    private String uploadDir;
+    private final ImageStorageService imageStorageService;
 
     // 게시글 생성
     @Override
@@ -275,9 +267,7 @@ public class PostServiceImpl implements PostService {
     }
 
     private void validateImageUrl(String imageUrl) {
-        String prefix = imageUrlPrefix.endsWith("/")
-                ? imageUrlPrefix.substring(0, imageUrlPrefix.length() - 1)
-                : imageUrlPrefix;
+        String prefix = imageStorageService.imageUrlPrefix();
 
         if (!imageUrl.startsWith(prefix + "/")) {
             throw new CustomException(ErrorCode.INVALID_IMAGE_URL);
@@ -311,13 +301,7 @@ public class PostServiceImpl implements PostService {
 
     private void deleteImageFiles(List<String> storageKeys) {
         for (String storageKey : storageKeys) {
-            Path imagePath = Path.of(uploadDir).resolve(storageKey).normalize();
-
-            try {
-                Files.deleteIfExists(imagePath);
-            } catch (IOException e) {
-                throw new CustomException(ErrorCode.IMAGE_DELETE_FAILED);
-            }
+            imageStorageService.delete(storageKey);
         }
     }
 }

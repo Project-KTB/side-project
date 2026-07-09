@@ -22,14 +22,11 @@ import org.ktb.sideproject.repository.ProfileImageRepository;
 import org.ktb.sideproject.repository.RefreshTokenRepository;
 import org.ktb.sideproject.repository.UserRepository;
 import org.ktb.sideproject.service.UserService;
-import org.springframework.beans.factory.annotation.Value;
+import org.ktb.sideproject.service.storage.ImageStorageService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -46,9 +43,7 @@ public class UserServiceImpl implements UserService {
     private final PostLikeRepository postLikeRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
-
-    @Value("${file.upload-dir}")
-    private String uploadDir;
+    private final ImageStorageService imageStorageService;
 
     @Override
     @Transactional
@@ -212,13 +207,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private void deleteImageFile(String storageKey) {
-        Path imagePath = Path.of(uploadDir).resolve(storageKey).normalize();
-
-        try {
-            Files.deleteIfExists(imagePath);
-        } catch (IOException e) {
-            throw new CustomException(ErrorCode.IMAGE_DELETE_FAILED);
-        }
+        imageStorageService.delete(storageKey);
     }
 
     private void deleteImageFiles(List<String> storageKeys) {

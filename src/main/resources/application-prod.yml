@@ -46,6 +46,13 @@ app:
       domain: ${APP_REFRESH_COOKIE_DOMAIN:}
   image-upload:
     enabled: ${APP_IMAGE_UPLOAD_ENABLED:false}
+  image-storage:
+    type: ${APP_IMAGE_STORAGE_TYPE:local}
+    s3:
+      bucket: ${APP_IMAGE_STORAGE_S3_BUCKET:}
+      region: ${APP_IMAGE_STORAGE_S3_REGION:ap-northeast-2}
+      public-url-prefix: ${APP_IMAGE_STORAGE_S3_PUBLIC_URL_PREFIX:}
+      presigned-url-duration-seconds: ${APP_IMAGE_STORAGE_S3_PRESIGNED_URL_DURATION_SECONDS:300}
 
 file:
   upload-dir: ${FILE_UPLOAD_DIR:uploads}

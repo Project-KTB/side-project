@@ -1,6 +1,8 @@
 package org.ktb.sideproject.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.ktb.sideproject.dto.image.req.ImagePresignedUploadRequest;
+import org.ktb.sideproject.dto.image.res.ImagePresignedUploadResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.ktb.sideproject.dto.image.res.ImageUploadResponse;
 import org.ktb.sideproject.service.ImageService;
@@ -37,6 +39,24 @@ public class ImageController {
         assertImageUploadEnabled();
         ImageUploadResponse imageUploadResponse = imageService.uploadProfileImage(multipartFile);
         return ResponseEntity.ok(imageUploadResponse);
+    }
+
+    // 게시글 이미지 presigned URL 발급
+    @PostMapping("/posts/presigned-url")
+    public ResponseEntity<ImagePresignedUploadResponse> createPostImagePresignedUrl(
+            @RequestBody ImagePresignedUploadRequest request) {
+        assertImageUploadEnabled();
+        ImagePresignedUploadResponse response = imageService.createPostImagePresignedUrl(request);
+        return ResponseEntity.ok(response);
+    }
+
+    // 프로필 이미지 presigned URL 발급
+    @PostMapping("/profile/presigned-url")
+    public ResponseEntity<ImagePresignedUploadResponse> createProfileImagePresignedUrl(
+            @RequestBody ImagePresignedUploadRequest request) {
+        assertImageUploadEnabled();
+        ImagePresignedUploadResponse response = imageService.createProfileImagePresignedUrl(request);
+        return ResponseEntity.ok(response);
     }
 
     private void assertImageUploadEnabled() {

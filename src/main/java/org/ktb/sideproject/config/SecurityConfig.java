@@ -68,12 +68,16 @@ public class SecurityConfig {
                     if (imageUploadEnabled) {
                         auth
                                 .requestMatchers(HttpMethod.POST, "/images/posts").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/images/posts/presigned-url").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/images/profile").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/images/profile/presigned-url").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll();
                     } else {
                         auth
                                 .requestMatchers(HttpMethod.POST, "/images/posts").denyAll()
+                                .requestMatchers(HttpMethod.POST, "/images/posts/presigned-url").denyAll()
                                 .requestMatchers(HttpMethod.POST, "/images/profile").denyAll()
+                                .requestMatchers(HttpMethod.POST, "/images/profile/presigned-url").denyAll()
                                 .requestMatchers(HttpMethod.GET, "/uploads/**").denyAll();
                     }
 

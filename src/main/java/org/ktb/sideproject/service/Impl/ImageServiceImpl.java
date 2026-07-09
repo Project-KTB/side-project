@@ -1,6 +1,8 @@
 package org.ktb.sideproject.service.Impl;
 
 import lombok.RequiredArgsConstructor;
+import org.ktb.sideproject.dto.image.req.ImagePresignedUploadRequest;
+import org.ktb.sideproject.dto.image.res.ImagePresignedUploadResponse;
 import org.ktb.sideproject.dto.image.res.ImageUploadResponse;
 import org.ktb.sideproject.entity.PostImage;
 import org.ktb.sideproject.entity.ProfileImage;
@@ -9,14 +11,11 @@ import org.ktb.sideproject.error.ErrorCode;
 import org.ktb.sideproject.repository.PostImageRepository;
 import org.ktb.sideproject.repository.ProfileImageRepository;
 import org.ktb.sideproject.service.ImageService;
-import org.springframework.beans.factory.annotation.Value;
+import org.ktb.sideproject.service.storage.ImageStorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Set;
@@ -38,12 +37,7 @@ public class ImageServiceImpl implements ImageService {
 
     private final PostImageRepository postImageRepository;
     private final ProfileImageRepository profileImageRepository;
-
-    @Value("${file.upload-dir}")
-    private String uploadDir;
-
-    @Value("${file.image-url-prefix}")
-    private String imageUrlPrefix;
+    private final ImageStorageService imageStorageService;
 
     @Override
     public ImageUploadResponse uploadPostImage(MultipartFile file) {
@@ -52,7 +46,8 @@ public class ImageServiceImpl implements ImageService {
         String originName = file.getOriginalFilename();
         String extension = extractExtension(originName);
         String imageName = UUID.randomUUID() + "." + extension;
-        StoredImage storedImage = storeImage(file, "post-images", imageName);
+        String storageKey = createStorageKey("post-images", imageName);
+        ImageStorageService.StoredImage storedImage = imageStorageService.store(file, storageKey);
         PostImage image = postImageRepository.save(new PostImage(
                 originName,
                 imageName,
@@ -77,7 +72,8 @@ public class ImageServiceImpl implements ImageService {
         String originName = file.getOriginalFilename();
         String extension = extractExtension(originName);
         String imageName = UUID.randomUUID() + "." + extension;
-        StoredImage storedImage = storeImage(file, "profile-images", imageName);
+        String storageKey = createStorageKey("profile-images", imageName);
+        ImageStorageService.StoredImage storedImage = imageStorageService.store(file, storageKey);
         ProfileImage image = profileImageRepository.save(new ProfileImage(
                 originName,
                 imageName,
@@ -96,6 +92,66 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     @Transactional
+    public ImagePresignedUploadResponse createPostImagePresignedUrl(ImagePresignedUploadRequest request) {
+        validateImageMetadata(request);
+
+        String originName = request.originName();
+        String extension = extractExtension(originName);
+        String imageName = UUID.randomUUID() + "." + extension;
+        String storageKey = createStorageKey("post-images", imageName);
+        ImageStorageService.PresignedUpload presignedUpload = imageStorageService.presignPut(storageKey, request.contentType());
+        PostImage image = postImageRepository.save(new PostImage(
+                originName,
+                imageName,
+                presignedUpload.imageUrl(),
+                storageKey
+        ));
+
+        return new ImagePresignedUploadResponse(
+                image.getId(),
+                image.getOriginName(),
+                image.getImageName(),
+                image.getImageUrl(),
+                image.getStorageKey(),
+                presignedUpload.uploadUrl(),
+                presignedUpload.method(),
+                request.contentType(),
+                presignedUpload.expiresInSeconds()
+        );
+    }
+
+    @Override
+    @Transactional
+    public ImagePresignedUploadResponse createProfileImagePresignedUrl(ImagePresignedUploadRequest request) {
+        validateImageMetadata(request);
+
+        String originName = request.originName();
+        String extension = extractExtension(originName);
+        String imageName = UUID.randomUUID() + "." + extension;
+        String storageKey = createStorageKey("profile-images", imageName);
+        ImageStorageService.PresignedUpload presignedUpload = imageStorageService.presignPut(storageKey, request.contentType());
+        ProfileImage image = profileImageRepository.save(new ProfileImage(
+                originName,
+                imageName,
+                presignedUpload.imageUrl(),
+                storageKey
+        ));
+
+        return new ImagePresignedUploadResponse(
+                image.getId(),
+                image.getOriginName(),
+                image.getImageName(),
+                image.getImageUrl(),
+                image.getStorageKey(),
+                presignedUpload.uploadUrl(),
+                presignedUpload.method(),
+                request.contentType(),
+                presignedUpload.expiresInSeconds()
+        );
+    }
+
+    @Override
+    @Transactional
     public void deletePostImage(Long userId, Long imageId) {
         PostImage image = postImageRepository.findById(imageId)
                 .orElseThrow(() -> new CustomException(ErrorCode.IMAGE_NOT_FOUND));
@@ -105,7 +161,7 @@ public class ImageServiceImpl implements ImageService {
         }
 
         postImageRepository.delete(image);
-        deleteImageFile(image.getStorageKey());
+        imageStorageService.delete(image.getStorageKey());
     }
 
     private void validateImage(MultipartFile file) {
@@ -128,6 +184,27 @@ public class ImageServiceImpl implements ImageService {
         extractExtension(file.getOriginalFilename());
     }
 
+    private void validateImageMetadata(ImagePresignedUploadRequest request) {
+        if (request == null) {
+            throw new CustomException(ErrorCode.IMAGE_FILE_REQUIRED);
+        }
+
+        if (request.fileSize() == null || request.fileSize() <= 0) {
+            throw new CustomException(ErrorCode.IMAGE_FILE_REQUIRED);
+        }
+
+        if (request.fileSize() > MAX_IMAGE_SIZE) {
+            throw new CustomException(ErrorCode.IMAGE_SIZE_EXCEEDED);
+        }
+
+        String contentType = request.contentType();
+        if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT_TYPE);
+        }
+
+        extractExtension(request.originName());
+    }
+
     private String extractExtension(String filename) {
         if (filename == null || filename.isBlank() || !filename.contains(".")) {
             throw new CustomException(ErrorCode.IMAGE_EXTENSION_REQUIRED);
@@ -141,44 +218,7 @@ public class ImageServiceImpl implements ImageService {
         return extension;
     }
 
-    private StoredImage storeImage(MultipartFile file, String directory, String imageName) {
-        String storageKey = directory + "/" + LocalDate.now().format(DATE_PATH_FORMATTER) + "/" + imageName;
-        String imageUrl = normalizePrefix(imageUrlPrefix) + "/" + storageKey;
-        Path savePath = Path.of(uploadDir).resolve(storageKey).normalize();
-
-        try {
-            Files.createDirectories(savePath.getParent());
-            file.transferTo(savePath);
-        } catch (IOException e) {
-            throw new CustomException(ErrorCode.IMAGE_SAVE_FAILED, e);
-        }
-
-        return new StoredImage(storageKey, imageUrl);
-    }
-
-    private void deleteImageFile(String storageKey) {
-        Path imagePath = Path.of(uploadDir).resolve(storageKey).normalize();
-
-        try {
-            Files.deleteIfExists(imagePath);
-        } catch (IOException e) {
-            throw new CustomException(ErrorCode.IMAGE_DELETE_FAILED, e);
-        }
-    }
-
-    private String normalizePrefix(String prefix) {
-        if (prefix == null || prefix.isBlank()) {
-            return "";
-        }
-
-        return prefix.endsWith("/")
-                ? prefix.substring(0, prefix.length() - 1)
-                : prefix;
-    }
-
-    private record StoredImage(
-            String storageKey,
-            String imageUrl
-    ) {
+    private String createStorageKey(String directory, String imageName) {
+        return directory + "/" + LocalDate.now().format(DATE_PATH_FORMATTER) + "/" + imageName;
     }
 }

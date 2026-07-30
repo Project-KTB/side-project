@@ -110,3 +110,5 @@ ALB target group health check path는 prod context-path 기준 `GET /api/health`
 2. 이후 Flyway/Liquibase 같은 migration 도구를 도입한다.
 
 일반 기능 배포/CD에서 `JPA_DDL_AUTO=update`를 다시 켜지 않는다. `update`는 fresh RDS 최초 schema bootstrap 전용이다.
+
+구버전과 신버전이 동시에 실행되는 롤링 배포에서 컬럼을 변경해야 한다면 [`무중단 DB 스키마 전환 런북`](./zero-downtime-db-migration.md)의 Expand–Migrate–Contract 절차를 따른다.

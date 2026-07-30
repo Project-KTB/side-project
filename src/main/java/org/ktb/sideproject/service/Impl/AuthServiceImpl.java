@@ -32,6 +32,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProvider jwtProvider;
     private final RefreshTokenRepository refreshTokenRepository;
     private final ProfileImageRepository profileImageRepository;
+    private final RefreshTokenHasher refreshTokenHasher;
 
     @Override
     @Transactional
@@ -47,8 +48,7 @@ public class AuthServiceImpl implements AuthService {
         // refreshToken 쿠키나 헤더 처리
         String refreshToken = jwtProvider.createRT(user.getId());
 
-        refreshTokenRepository.save(new RefreshToken(user, refreshToken));
-
+        refreshTokenRepository.save(new RefreshToken(user, refreshTokenHasher.hash(refreshToken)));
 
         UserInfo userInfo = new UserInfo(
                 user.getId(),
@@ -61,7 +61,6 @@ public class AuthServiceImpl implements AuthService {
         return new LoginResult(loginResponse, refreshToken);
     }
 
-
     @Override
     @Transactional
     public void logout(String refreshToken, Long userId) {
@@ -69,13 +68,13 @@ public class AuthServiceImpl implements AuthService {
             return;
         }
 
-        refreshTokenRepository.deleteByRefreshToken(refreshToken);
+        refreshTokenRepository.deleteByRefreshTokenHash(refreshTokenHasher.hash(refreshToken));
     }
 
     @Override
     @Transactional
     public ReissueResult reissueToken(String refreshToken) {
-        if(refreshToken == null || !jwtProvider.validateRefreshToken(refreshToken)){
+        if (refreshToken == null || !jwtProvider.validateRefreshToken(refreshToken)) {
             log.warn("[TOKEN_REISSUE_FAIL] Refresh Token 누락 또는 검증 실패");
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
@@ -83,13 +82,14 @@ public class AuthServiceImpl implements AuthService {
         Long userId = jwtProvider.getUserId(refreshToken);
         log.info("[TOKEN_REISSUE] Refresh Token 검증 성공. userId={}", userId);
 
-        RefreshToken savedToken = refreshTokenRepository.findByRefreshToken(refreshToken)
+        String refreshTokenHash = refreshTokenHasher.hash(refreshToken);
+        RefreshToken savedToken = refreshTokenRepository.findByRefreshTokenHash(refreshTokenHash)
                 .orElseThrow(() -> {
                     log.warn("[TOKEN_REISSUE_FAIL] 저장된 Refresh Token 없음. userId={}", userId);
                     return new CustomException(ErrorCode.REFRESH_TOKEN_NOT_FOUND);
                 });
 
-        if(!savedToken.getUser().getId().equals(userId)){
+        if (!savedToken.getUser().getId().equals(userId)) {
             log.warn("[TOKEN_REISSUE_FAIL] Refresh Token 사용자 불일치. tokenUserId={}, savedUserId={}",
                     userId, savedToken.getUser().getId());
             throw new CustomException(ErrorCode.REFRESH_TOKEN_MISMATCH);
@@ -98,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
         String newAccessToken = jwtProvider.createAT(userId);
         String newRefreshToken = jwtProvider.createRT(userId);
 
-        savedToken.updateRefreshToken(newRefreshToken);
+        savedToken.updateRefreshTokenHash(refreshTokenHasher.hash(newRefreshToken));
         log.info("[TOKEN_REISSUE] Access Token 및 Refresh Token 재발급 완료. userId={}", userId);
 
         return new ReissueResult(newAccessToken, newRefreshToken);

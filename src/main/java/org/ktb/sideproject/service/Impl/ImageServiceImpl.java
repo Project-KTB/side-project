@@ -11,11 +11,14 @@ import org.ktb.sideproject.error.ErrorCode;
 import org.ktb.sideproject.repository.PostImageRepository;
 import org.ktb.sideproject.repository.ProfileImageRepository;
 import org.ktb.sideproject.service.ImageService;
+import org.ktb.sideproject.service.storage.DeferredImageDeletionService;
 import org.ktb.sideproject.service.storage.ImageStorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Set;
@@ -34,13 +37,17 @@ public class ImageServiceImpl implements ImageService {
             "image/webp"
     );
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp");
+    private static final int MAGIC_BYTES_READ_LIMIT = 12;
 
     private final PostImageRepository postImageRepository;
     private final ProfileImageRepository profileImageRepository;
     private final ImageStorageService imageStorageService;
+    private final DeferredImageDeletionService deferredImageDeletionService;
 
     @Override
-    public ImageUploadResponse uploadPostImage(MultipartFile file) {
+    @Transactional
+    public ImageUploadResponse uploadPostImage(Long uploaderId, MultipartFile file) {
+        requireUploader(uploaderId);
         validateImage(file);
 
         String originName = file.getOriginalFilename();
@@ -52,7 +59,8 @@ public class ImageServiceImpl implements ImageService {
                 originName,
                 imageName,
                 storedImage.imageUrl(),
-                storedImage.storageKey()
+                storedImage.storageKey(),
+                uploaderId
         ));
 
         return new ImageUploadResponse(
@@ -66,7 +74,8 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     @Transactional
-    public ImageUploadResponse uploadProfileImage(MultipartFile file) {
+    public ImageUploadResponse uploadProfileImage(Long uploaderId, MultipartFile file) {
+        requireUploader(uploaderId);
         validateImage(file);
 
         String originName = file.getOriginalFilename();
@@ -78,7 +87,8 @@ public class ImageServiceImpl implements ImageService {
                 originName,
                 imageName,
                 storedImage.imageUrl(),
-                storedImage.storageKey()
+                storedImage.storageKey(),
+                uploaderId
         ));
 
         return new ImageUploadResponse(
@@ -92,19 +102,21 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     @Transactional
-    public ImagePresignedUploadResponse createPostImagePresignedUrl(ImagePresignedUploadRequest request) {
+    public ImagePresignedUploadResponse createPostImagePresignedUrl(Long uploaderId, ImagePresignedUploadRequest request) {
+        requireUploader(uploaderId);
         validateImageMetadata(request);
 
         String originName = request.originName();
         String extension = extractExtension(originName);
         String imageName = UUID.randomUUID() + "." + extension;
         String storageKey = createStorageKey("post-images", imageName);
-        ImageStorageService.PresignedUpload presignedUpload = imageStorageService.presignPut(storageKey, request.contentType());
+        ImageStorageService.PresignedUpload presignedUpload = imageStorageService.presignPut(storageKey, request.contentType(), request.fileSize());
         PostImage image = postImageRepository.save(new PostImage(
                 originName,
                 imageName,
                 presignedUpload.imageUrl(),
-                storageKey
+                storageKey,
+                uploaderId
         ));
 
         return new ImagePresignedUploadResponse(
@@ -122,19 +134,21 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     @Transactional
-    public ImagePresignedUploadResponse createProfileImagePresignedUrl(ImagePresignedUploadRequest request) {
+    public ImagePresignedUploadResponse createProfileImagePresignedUrl(Long uploaderId, ImagePresignedUploadRequest request) {
+        requireUploader(uploaderId);
         validateImageMetadata(request);
 
         String originName = request.originName();
         String extension = extractExtension(originName);
         String imageName = UUID.randomUUID() + "." + extension;
         String storageKey = createStorageKey("profile-images", imageName);
-        ImageStorageService.PresignedUpload presignedUpload = imageStorageService.presignPut(storageKey, request.contentType());
+        ImageStorageService.PresignedUpload presignedUpload = imageStorageService.presignPut(storageKey, request.contentType(), request.fileSize());
         ProfileImage image = profileImageRepository.save(new ProfileImage(
                 originName,
                 imageName,
                 presignedUpload.imageUrl(),
-                storageKey
+                storageKey,
+                uploaderId
         ));
 
         return new ImagePresignedUploadResponse(
@@ -161,7 +175,13 @@ public class ImageServiceImpl implements ImageService {
         }
 
         postImageRepository.delete(image);
-        imageStorageService.delete(image.getStorageKey());
+        deferredImageDeletionService.delete(image.getStorageKey());
+    }
+
+    private void requireUploader(Long uploaderId) {
+        if (uploaderId == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED);
+        }
     }
 
     private void validateImage(MultipartFile file) {
@@ -175,13 +195,10 @@ public class ImageServiceImpl implements ImageService {
             throw new CustomException(ErrorCode.IMAGE_SIZE_EXCEEDED);
         }
 
-        // Content-Type 확인
+        String extension = extractExtension(file.getOriginalFilename());
         String contentType = file.getContentType();
-        if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT_TYPE);
-        }
-
-        extractExtension(file.getOriginalFilename());
+        validateContentTypeMatchesExtension(contentType, extension);
+        validateMagicBytes(file, extension);
     }
 
     private void validateImageMetadata(ImagePresignedUploadRequest request) {
@@ -197,12 +214,8 @@ public class ImageServiceImpl implements ImageService {
             throw new CustomException(ErrorCode.IMAGE_SIZE_EXCEEDED);
         }
 
-        String contentType = request.contentType();
-        if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
-            throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT_TYPE);
-        }
-
-        extractExtension(request.originName());
+        String extension = extractExtension(request.originName());
+        validateContentTypeMatchesExtension(request.contentType(), extension);
     }
 
     private String extractExtension(String filename) {
@@ -216,6 +229,82 @@ public class ImageServiceImpl implements ImageService {
         }
 
         return extension;
+    }
+
+    private void validateContentTypeMatchesExtension(String contentType, String extension) {
+        if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT_TYPE);
+        }
+
+        if (!contentType.equals(expectedContentType(extension))) {
+            throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT_TYPE);
+        }
+    }
+
+    private String expectedContentType(String extension) {
+        return switch (extension) {
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "png" -> "image/png";
+            case "gif" -> "image/gif";
+            case "webp" -> "image/webp";
+            default -> throw new CustomException(ErrorCode.INVALID_IMAGE_EXTENSION);
+        };
+    }
+
+    private void validateMagicBytes(MultipartFile file, String extension) {
+        byte[] header = readHeader(file);
+        boolean valid = switch (extension) {
+            case "jpg", "jpeg" -> hasPrefix(header, 0xFF, 0xD8, 0xFF);
+            case "png" -> hasPrefix(header, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A);
+            case "gif" -> hasAsciiPrefix(header, "GIF87a") || hasAsciiPrefix(header, "GIF89a");
+            case "webp" -> hasAsciiPrefix(header, "RIFF")
+                    && header.length >= 12
+                    && header[8] == 'W'
+                    && header[9] == 'E'
+                    && header[10] == 'B'
+                    && header[11] == 'P';
+            default -> false;
+        };
+
+        if (!valid) {
+            throw new CustomException(ErrorCode.INVALID_IMAGE_CONTENT_TYPE);
+        }
+    }
+
+    private byte[] readHeader(MultipartFile file) {
+        try (InputStream inputStream = file.getInputStream()) {
+            return inputStream.readNBytes(MAGIC_BYTES_READ_LIMIT);
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.IMAGE_SAVE_FAILED, e);
+        }
+    }
+
+    private boolean hasPrefix(byte[] bytes, int... prefix) {
+        if (bytes.length < prefix.length) {
+            return false;
+        }
+
+        for (int i = 0; i < prefix.length; i++) {
+            if ((bytes[i] & 0xFF) != prefix[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean hasAsciiPrefix(byte[] bytes, String prefix) {
+        if (bytes.length < prefix.length()) {
+            return false;
+        }
+
+        for (int i = 0; i < prefix.length(); i++) {
+            if (bytes[i] != (byte) prefix.charAt(i)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private String createStorageKey(String directory, String imageName) {

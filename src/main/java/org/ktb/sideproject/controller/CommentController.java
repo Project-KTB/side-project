@@ -6,13 +6,11 @@ import org.ktb.sideproject.dto.comment.req.CommentCreateRequest;
 import org.ktb.sideproject.dto.comment.req.CommentUpdateRequest;
 import org.ktb.sideproject.dto.comment.res.CommentListResponse;
 import org.ktb.sideproject.dto.comment.res.CommentResponse;
-import org.ktb.sideproject.error.CustomException;
-import org.ktb.sideproject.error.ErrorCode;
 import org.ktb.sideproject.service.CommentService;
+import org.ktb.sideproject.validation.PaginationValidator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
 
 @RestController
 @RequestMapping("/comments")
@@ -27,14 +25,12 @@ public class CommentController {
             @PathVariable Long postId,
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "10") int size) {
-        if(size <= 0) {
-            throw new CustomException(ErrorCode.INVALID_PAGINATION_PARAMETER);
-        }
-
-        CommentListResponse commentListResponse = commentService.getComments(postId, cursor, size);
+        int validatedSize = PaginationValidator.requireValidSize(size);
+        CommentListResponse commentListResponse = commentService.getComments(postId, cursor, validatedSize);
 
         return ResponseEntity.ok(commentListResponse);
     }
+
     // 댓글 작성
     @PostMapping("/{postId}")
     public ResponseEntity<CommentResponse> createComment(

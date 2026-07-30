@@ -8,9 +8,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface PostImageRepository extends JpaRepository<PostImage, Long> {
-    List<PostImage> findByPostId(Long postId);
-
-    List<PostImage> findByImageUrlInAndStatus(List<String> imageUrls, ImageStatus status);
+    List<PostImage> findByImageUrlInAndStatusAndUploaderId(List<String> imageUrls, ImageStatus status, Long uploaderId);
 
     List<PostImage> findByStatusAndCreatedAtBefore(ImageStatus status, LocalDateTime createdAt);
 }

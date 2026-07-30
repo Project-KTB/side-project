@@ -58,6 +58,9 @@ file:
   upload-dir: ${FILE_UPLOAD_DIR:uploads}
   image-url-prefix: ${FILE_IMAGE_URL_PREFIX:/uploads}
 
+refresh-token:
+  hash-secret: ${REFRESH_TOKEN_HASH_SECRET}
+
 jwt:
   secret: ${JWT_SECRET}
   access-token-exp-seconds: ${JWT_ACCESS_TOKEN_EXP_SECONDS:300}

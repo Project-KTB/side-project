@@ -6,7 +6,7 @@ public interface ImageStorageService {
 
     StoredImage store(MultipartFile file, String storageKey);
 
-    PresignedUpload presignPut(String storageKey, String contentType);
+    PresignedUpload presignPut(String storageKey, String contentType, long contentLength);
 
     void delete(String storageKey);
 

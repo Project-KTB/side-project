@@ -3,9 +3,9 @@ package org.ktb.sideproject.controller;
 import lombok.RequiredArgsConstructor;
 import org.ktb.sideproject.dto.image.req.ImagePresignedUploadRequest;
 import org.ktb.sideproject.dto.image.res.ImagePresignedUploadResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.ktb.sideproject.dto.image.res.ImageUploadResponse;
 import org.ktb.sideproject.service.ImageService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,36 +26,40 @@ public class ImageController {
     // 게시글 이미지 업로드
     @PostMapping("/posts")
     public ResponseEntity<ImageUploadResponse> uploadPostImage(
+            @AuthenticationPrincipal Long authUserId,
             @RequestParam("image") MultipartFile multipartFile) {
         assertImageUploadEnabled();
-        ImageUploadResponse imageUploadResponse = imageService.uploadPostImage(multipartFile);
+        ImageUploadResponse imageUploadResponse = imageService.uploadPostImage(authUserId, multipartFile);
         return ResponseEntity.ok(imageUploadResponse);
     }
 
     // 프로필 이미지 업로드
     @PostMapping("/profile")
     public ResponseEntity<ImageUploadResponse> uploadProfileImage(
+            @AuthenticationPrincipal Long authUserId,
             @RequestParam("image") MultipartFile multipartFile) {
         assertImageUploadEnabled();
-        ImageUploadResponse imageUploadResponse = imageService.uploadProfileImage(multipartFile);
+        ImageUploadResponse imageUploadResponse = imageService.uploadProfileImage(authUserId, multipartFile);
         return ResponseEntity.ok(imageUploadResponse);
     }
 
     // 게시글 이미지 presigned URL 발급
     @PostMapping("/posts/presigned-url")
     public ResponseEntity<ImagePresignedUploadResponse> createPostImagePresignedUrl(
+            @AuthenticationPrincipal Long authUserId,
             @RequestBody ImagePresignedUploadRequest request) {
         assertImageUploadEnabled();
-        ImagePresignedUploadResponse response = imageService.createPostImagePresignedUrl(request);
+        ImagePresignedUploadResponse response = imageService.createPostImagePresignedUrl(authUserId, request);
         return ResponseEntity.ok(response);
     }
 
     // 프로필 이미지 presigned URL 발급
     @PostMapping("/profile/presigned-url")
     public ResponseEntity<ImagePresignedUploadResponse> createProfileImagePresignedUrl(
+            @AuthenticationPrincipal Long authUserId,
             @RequestBody ImagePresignedUploadRequest request) {
         assertImageUploadEnabled();
-        ImagePresignedUploadResponse response = imageService.createProfileImagePresignedUrl(request);
+        ImagePresignedUploadResponse response = imageService.createProfileImagePresignedUrl(authUserId, request);
         return ResponseEntity.ok(response);
     }
 

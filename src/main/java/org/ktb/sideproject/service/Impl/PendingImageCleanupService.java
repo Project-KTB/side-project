@@ -14,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -33,15 +35,16 @@ public class PendingImageCleanupService {
         List<ProfileImage> profileImages = profileImageRepository.findByStatusAndCreatedAtBefore(ImageStatus.PENDING, expiredAt);
         List<PostImage> deletedPostImages = new ArrayList<>();
         List<ProfileImage> deletedProfileImages = new ArrayList<>();
+        Set<String> deletedStorageKeys = new HashSet<>();
 
         for (PostImage image : postImages) {
-            if (deleteImageFile(image.getStorageKey())) {
+            if (deleteImageFile(image.getStorageKey(), deletedStorageKeys)) {
                 deletedPostImages.add(image);
             }
         }
 
         for (ProfileImage image : profileImages) {
-            if (deleteImageFile(image.getStorageKey())) {
+            if (deleteImageFile(image.getStorageKey(), deletedStorageKeys)) {
                 deletedProfileImages.add(image);
             }
         }
@@ -50,7 +53,15 @@ public class PendingImageCleanupService {
         profileImageRepository.deleteAll(deletedProfileImages);
     }
 
-    private boolean deleteImageFile(String storageKey) {
+    private boolean deleteImageFile(String storageKey, Set<String> deletedStorageKeys) {
+        if (storageKey == null || storageKey.isBlank()) {
+            return true;
+        }
+
+        if (!deletedStorageKeys.add(storageKey)) {
+            return true;
+        }
+
         try {
             imageStorageService.delete(storageKey);
             return true;

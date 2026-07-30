@@ -11,7 +11,10 @@ import java.time.LocalDateTime;
 @Entity
 @Table(
         name = "ProfileImage",
-        indexes = @Index(name = "IDX_PROFILE_IMAGE_USER", columnList = "userId")
+        indexes = {
+                @Index(name = "IDX_PROFILE_IMAGE_USER", columnList = "userId"),
+                @Index(name = "IDX_PROFILE_IMAGE_UPLOADER_STATUS", columnList = "uploaderId,status")
+        }
 )
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -37,6 +40,9 @@ public class ProfileImage {
     @Column(nullable = false)
     private ImageStatus status;
 
+    @Column
+    private Long uploaderId;
+
     @CreationTimestamp
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -46,10 +52,15 @@ public class ProfileImage {
     private User user;
 
     public ProfileImage(String originName, String imageName, String imageUrl, String storageKey) {
+        this(originName, imageName, imageUrl, storageKey, null);
+    }
+
+    public ProfileImage(String originName, String imageName, String imageUrl, String storageKey, Long uploaderId) {
         this.originName = originName;
         this.imageName = imageName;
         this.imageUrl = imageUrl;
         this.storageKey = storageKey;
+        this.uploaderId = uploaderId;
         this.status = ImageStatus.PENDING;
     }
 

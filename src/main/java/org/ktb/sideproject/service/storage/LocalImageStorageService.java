@@ -38,7 +38,7 @@ public class LocalImageStorageService implements ImageStorageService {
     }
 
     @Override
-    public PresignedUpload presignPut(String storageKey, String contentType) {
+    public PresignedUpload presignPut(String storageKey, String contentType, long contentLength) {
         throw new CustomException(
                 ErrorCode.IMAGE_SAVE_FAILED,
                 "Presigned upload is only available when app.image-storage.type=s3."

@@ -25,6 +25,7 @@ public enum ErrorCode {
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "DUPLICATE_EMAIL", "중복된 이메일입니다."),
     DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "DUPLICATE_NICKNAME", "중복된 닉네임입니다."),
     PASSWORD_CONFIRM_MISMATCH(HttpStatus.BAD_REQUEST, "PASSWORD_CONFIRM_MISMATCH", "비밀번호 확인과 다릅니다."),
+    SIGNUP_PROFILE_IMAGE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "SIGNUP_PROFILE_IMAGE_NOT_SUPPORTED", "회원가입 시 프로필 이미지는 등록할 수 없습니다. 가입 후 로그인하여 프로필 이미지를 변경해주세요."),
     PROFILE_IMAGE_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "PROFILE_IMAGE_NOT_AVAILABLE", "업로드되지 않았거나 이미 사용된 프로필 이미지입니다."),
 
     // Post

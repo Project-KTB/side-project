@@ -9,14 +9,15 @@ import org.ktb.sideproject.dto.auth.ReissueResult;
 import org.ktb.sideproject.dto.auth.req.LoginRequest;
 import org.ktb.sideproject.dto.auth.res.LoginResponse;
 import org.ktb.sideproject.dto.auth.res.ReissueResponse;
+import org.ktb.sideproject.error.CustomException;
 import org.ktb.sideproject.service.AuthService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 
@@ -44,7 +45,7 @@ public class AuthController {
 
     @PostMapping
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse response) {
-        LoginResult loginResult =  authService.login(loginRequest);
+        LoginResult loginResult = authService.login(loginRequest);
         setRefreshCookie(loginResult.refreshToken(), response);
 
         return ResponseEntity.ok(loginResult.loginResponse());
@@ -66,15 +67,18 @@ public class AuthController {
             @CookieValue(name = "refreshToken", required = false) String refreshToken) {
         log.info("[TOKEN_REISSUE] 토큰 재발급 요청 수신. hasRefreshToken={}", refreshToken != null);
 
-        ReissueResult reissueResult = authService.reissueToken(refreshToken);
-        setRefreshCookie(reissueResult.refreshToken(), response);
+        try {
+            ReissueResult reissueResult = authService.reissueToken(refreshToken);
+            setRefreshCookie(reissueResult.refreshToken(), response);
 
-        log.info("[TOKEN_REISSUE] 토큰 재발급 응답 완료");
+            log.info("[TOKEN_REISSUE] 토큰 재발급 응답 완료");
 
-        return ResponseEntity.ok(new ReissueResponse(reissueResult.accessToken()));
+            return ResponseEntity.ok(new ReissueResponse(reissueResult.accessToken()));
+        } catch (CustomException e) {
+            deleteRefreshCookie(response);
+            throw e;
+        }
     }
-
-
 
     private void setRefreshCookie(String refreshToken, HttpServletResponse response) {
         addRefreshCookie(response, refreshToken, Duration.ofSeconds(refreshTokenExpSeconds));

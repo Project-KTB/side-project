@@ -11,6 +11,7 @@ import org.ktb.sideproject.repository.PostLikeRepository;
 import org.ktb.sideproject.repository.PostRepository;
 import org.ktb.sideproject.repository.UserRepository;
 import org.ktb.sideproject.service.PostLikeService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,10 +41,17 @@ public class PostLikeServiceImpl implements PostLikeService {
                 .post(post)
                 .build();
 
-        postLikeRepository.save(postLike);
-        post.increaseLikesCount();
+        try {
+            postLikeRepository.saveAndFlush(postLike);
+        } catch (DataIntegrityViolationException e) {
+            throw new CustomException(ErrorCode.ALREADY_LIKED_POST);
+        }
 
-        return new PostLikeResponse(post.getId(), post.getLikesCount(), true);
+        postRepository.incrementLikesCount(postId);
+        int likesCount = postRepository.findLikesCountById(postId)
+                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+
+        return new PostLikeResponse(post.getId(), likesCount, true);
     }
 
     @Override
@@ -56,12 +64,15 @@ public class PostLikeServiceImpl implements PostLikeService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        PostLike postLike = postLikeRepository.findByUserIdAndPostId(userId, postId)
-                .orElseThrow(() -> new CustomException(ErrorCode.POST_LIKE_NOT_FOUND));
+        int deletedRows = postLikeRepository.deleteByUserIdAndPostId(userId, postId);
+        if (deletedRows == 0) {
+            throw new CustomException(ErrorCode.POST_LIKE_NOT_FOUND);
+        }
 
-        postLikeRepository.delete(postLike);
-        post.decreaseLikesCount();
+        postRepository.decrementLikesCount(postId);
+        int likesCount = postRepository.findLikesCountById(postId)
+                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        return new PostLikeResponse(post.getId(), post.getLikesCount(), false);
+        return new PostLikeResponse(post.getId(), likesCount, false);
     }
 }

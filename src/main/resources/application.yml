@@ -13,40 +13,39 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/side_project?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true}
-    username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:1234}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl # 카멜 케이스 컬럼명을 변환 없이 그대로 사용
-    show-sql: ${JPA_SHOW_SQL:true}
+    show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: ${HIBERNATE_FORMAT_SQL:true}
-        use_sql_comments: ${HIBERNATE_USE_SQL_COMMENTS:true}
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
+        use_sql_comments: ${HIBERNATE_USE_SQL_COMMENTS:false}
 
 server:
   port: ${SERVER_PORT:8080}
 
-
 logging:
   level:
-    org.hibernate.SQL: ${HIBERNATE_SQL_LOG_LEVEL:debug}
+    org.hibernate.SQL: ${HIBERNATE_SQL_LOG_LEVEL:warn}
 
 app:
   seed:
-    enabled: ${APP_SEED_ENABLED:true}
+    enabled: ${APP_SEED_ENABLED:false}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
   auth:
     refresh-cookie:
-      secure: ${APP_REFRESH_COOKIE_SECURE:false}
+      secure: ${APP_REFRESH_COOKIE_SECURE:true}
       same-site: ${APP_REFRESH_COOKIE_SAME_SITE:Lax}
       domain: ${APP_REFRESH_COOKIE_DOMAIN:}
   image-upload:
-    enabled: ${APP_IMAGE_UPLOAD_ENABLED:true}
+    enabled: ${APP_IMAGE_UPLOAD_ENABLED:false}
   image-storage:
     type: ${APP_IMAGE_STORAGE_TYPE:local}
     s3:
@@ -59,8 +58,11 @@ file:
   upload-dir: ${FILE_UPLOAD_DIR:uploads}
   image-url-prefix: ${FILE_IMAGE_URL_PREFIX:/uploads}
 
+refresh-token:
+  hash-secret: ${REFRESH_TOKEN_HASH_SECRET}
+
 # JWT
 jwt:
-  secret: ${JWT_SECRET:Tm5KRFFUWTBTMWsyTkhWck5qVXlPRFkyWlVrMk5IVnJOMGxMY3pkS1YwVTNTalpSTjB4RGJ6ZE1iVEEzV1U5Qk4xbDVUVGRhVjFrPQ==}
+  secret: ${JWT_SECRET}
   access-token-exp-seconds: ${JWT_ACCESS_TOKEN_EXP_SECONDS:300}
   refresh-token-exp-seconds: ${JWT_REFRESH_TOKEN_EXP_SECONDS:1209600}

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProfileImageRepository extends JpaRepository<ProfileImage, Long> {
-    Optional<ProfileImage> findByImageUrlAndStatus(String imageUrl, ImageStatus status);
+    Optional<ProfileImage> findByImageUrlAndStatusAndUploaderId(String imageUrl, ImageStatus status, Long uploaderId);
 
     Optional<ProfileImage> findByUserIdAndStatus(Long userId, ImageStatus status);
 

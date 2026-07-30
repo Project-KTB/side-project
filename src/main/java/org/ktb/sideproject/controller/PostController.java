@@ -7,9 +7,8 @@ import org.ktb.sideproject.dto.post.req.PostUpdateRequest;
 import org.ktb.sideproject.dto.post.res.PostDetailResponse;
 import org.ktb.sideproject.dto.post.res.PostListResponse;
 import org.ktb.sideproject.dto.post.res.PostUpdateResponse;
-import org.ktb.sideproject.error.CustomException;
-import org.ktb.sideproject.error.ErrorCode;
 import org.ktb.sideproject.service.PostService;
+import org.ktb.sideproject.validation.PaginationValidator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class PostController {
     private final PostService postService;
+
     // 게시글 생성
     @PostMapping
     public ResponseEntity<PostDetailResponse> createPost(
@@ -34,10 +34,8 @@ public class PostController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "10") int size) {
-        if(size <= 0) {
-            throw new CustomException(ErrorCode.INVALID_PAGINATION_PARAMETER);
-        }
-        PostListResponse postListResponse = postService.getPostList(keyword, cursor, size);
+        int validatedSize = PaginationValidator.requireValidSize(size);
+        PostListResponse postListResponse = postService.getPostList(keyword, cursor, validatedSize);
         return ResponseEntity.ok(postListResponse);
     }
 
@@ -46,7 +44,7 @@ public class PostController {
     public ResponseEntity<PostDetailResponse> getPost(
             @PathVariable Long postId,
             @AuthenticationPrincipal Long authUserId) {
-        PostDetailResponse  postDetailResponse = postService.getPost(postId, authUserId);
+        PostDetailResponse postDetailResponse = postService.getPost(postId, authUserId);
         return ResponseEntity.ok(postDetailResponse);
     }
 

@@ -5,7 +5,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-
 @Entity
 @Getter
 @Table(name = "RefreshToken")
@@ -20,15 +19,15 @@ public class RefreshToken {
     @JoinColumn(name = "userId", nullable = false)
     private User user;
 
-    @Column(name = "refreshToken", nullable = false, unique = true, length = 512)
-    private String refreshToken;
+    @Column(name = "refreshTokenHash", nullable = false, unique = true, length = 64)
+    private String refreshTokenHash;
 
-    public RefreshToken(User user, String refreshToken) {
+    public RefreshToken(User user, String refreshTokenHash) {
         this.user = user;
-        this.refreshToken = refreshToken;
+        this.refreshTokenHash = refreshTokenHash;
     }
 
-    public void updateRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
+    public void updateRefreshTokenHash(String refreshTokenHash) {
+        this.refreshTokenHash = refreshTokenHash;
     }
 }

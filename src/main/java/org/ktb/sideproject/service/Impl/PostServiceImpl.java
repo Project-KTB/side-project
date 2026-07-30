@@ -22,6 +22,7 @@ import org.ktb.sideproject.repository.PostRepository;
 import org.ktb.sideproject.repository.ProfileImageRepository;
 import org.ktb.sideproject.repository.UserRepository;
 import org.ktb.sideproject.service.PostService;
+import org.ktb.sideproject.service.storage.DeferredImageDeletionService;
 import org.ktb.sideproject.service.storage.ImageStorageService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -46,6 +47,7 @@ public class PostServiceImpl implements PostService {
     private final ProfileImageRepository profileImageRepository;
     private final CommentRepository commentRepository;
     private final ImageStorageService imageStorageService;
+    private final DeferredImageDeletionService deferredImageDeletionService;
 
     // 게시글 생성
     @Override
@@ -60,7 +62,7 @@ public class PostServiceImpl implements PostService {
                 .user(user)
                 .build();
 
-        addImages(post, request.imageUrls());
+        addImages(post, userId, request.imageUrls());
 
         Post currentPost = postRepository.save(post);
 
@@ -126,13 +128,16 @@ public class PostServiceImpl implements PostService {
 
     // 게시글 상세 조회
     @Override
-    @Transactional() //readOnly = true 제거 이유 뷰 카운트 증가
-                     // 나중에 리포지토리에 커스텀 쿼리로 동시성 제어 및 이 메소드는 readOnly만 하게 하기
+    @Transactional
     public PostDetailResponse getPost(Long postId, Long userId) {
-        Post post = postRepository.findById(postId)
+        int updatedRows = postRepository.incrementViewsCount(postId);
+        if (updatedRows == 0) {
+            throw new CustomException(ErrorCode.POST_NOT_FOUND);
+        }
+
+        Post post = postRepository.findDetailById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
         boolean liked = postLikeRepository.existsByUserIdAndPostId(userId, postId);
-        post.increaseViewsCount(); // 동시성 문제 확인해야함
         return PostDetailResponse.from(post, liked, getProfileImageUrl(post.getUser().getId()));
     }
 
@@ -155,9 +160,8 @@ public class PostServiceImpl implements PostService {
             throw new CustomException(ErrorCode.POST_UPDATE_VALUE_REQUIRED);
         }
 
-
         post.update(request.title(), request.content());
-        updateImages(post, request.imageUrls());
+        updateImages(post, userId, request.imageUrls());
 
         return PostUpdateResponse.from(post);
     }
@@ -187,13 +191,13 @@ public class PostServiceImpl implements PostService {
         deleteImageFiles(storageKeys);
     }
 
-    private void addImages(Post post, List<String> imageUrls) {
+    private void addImages(Post post, Long uploaderId, List<String> imageUrls) {
         if (imageUrls == null || imageUrls.isEmpty()) {
             return;
         }
 
         List<String> validImageUrls = normalizeImageUrls(imageUrls);
-        List<PostImage> images = postImageRepository.findByImageUrlInAndStatus(validImageUrls, ImageStatus.PENDING);
+        List<PostImage> images = postImageRepository.findByImageUrlInAndStatusAndUploaderId(validImageUrls, ImageStatus.PENDING, uploaderId);
 
         if (images.size() != validImageUrls.size()) {
             throw new CustomException(ErrorCode.POST_IMAGE_NOT_AVAILABLE);
@@ -204,7 +208,7 @@ public class PostServiceImpl implements PostService {
         }
     }
 
-    private void updateImages(Post post, List<String> imageUrls) {
+    private void updateImages(Post post, Long uploaderId, List<String> imageUrls) {
         if (imageUrls == null) {
             return;
         }
@@ -223,7 +227,7 @@ public class PostServiceImpl implements PostService {
                 .toList();
         List<PostImage> newImages = newImageUrls.isEmpty()
                 ? List.of()
-                : postImageRepository.findByImageUrlInAndStatus(newImageUrls, ImageStatus.PENDING);
+                : postImageRepository.findByImageUrlInAndStatusAndUploaderId(newImageUrls, ImageStatus.PENDING, uploaderId);
 
         if (newImages.size() != newImageUrls.size()) {
             throw new CustomException(ErrorCode.POST_IMAGE_NOT_AVAILABLE);
@@ -301,7 +305,7 @@ public class PostServiceImpl implements PostService {
 
     private void deleteImageFiles(List<String> storageKeys) {
         for (String storageKey : storageKeys) {
-            imageStorageService.delete(storageKey);
+            deferredImageDeletionService.delete(storageKey);
         }
     }
 }

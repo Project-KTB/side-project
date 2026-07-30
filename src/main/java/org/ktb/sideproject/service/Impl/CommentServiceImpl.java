@@ -39,7 +39,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional(readOnly = true)
     public CommentListResponse getComments(Long postId, Long cursor, int size) {
-        if(!postRepository.existsById(postId)) {
+        if (!postRepository.existsById(postId)) {
             throw new CustomException(ErrorCode.POST_NOT_FOUND);
         }
 
@@ -94,7 +94,7 @@ public class CommentServiceImpl implements CommentService {
                 .build();
 
         Comment savedComment = commentRepository.save(comment);
-        post.increaseCommentsCount(); // 동시성 문제 해결해야함
+        postRepository.incrementCommentsCount(postId);
 
         return CommentResponse.from(savedComment, getProfileImageUrl(userId));
     }
@@ -106,7 +106,7 @@ public class CommentServiceImpl implements CommentService {
             throw new CustomException(ErrorCode.USER_NOT_FOUND);
         }
 
-        Comment comment = commentRepository.findById(commentId)
+        Comment comment = commentRepository.findWithUserAndPostById(commentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
 
         if (!comment.getUser().getId().equals(userId)) {
@@ -129,15 +129,15 @@ public class CommentServiceImpl implements CommentService {
             throw new CustomException(ErrorCode.USER_NOT_FOUND);
         }
 
-        Comment comment = commentRepository.findById(commentId)
+        Comment comment = commentRepository.findWithUserAndPostById(commentId)
                 .orElseThrow(() -> new CustomException(ErrorCode.COMMENT_NOT_FOUND));
 
         if (!comment.getUser().getId().equals(userId)) {
             throw new CustomException(ErrorCode.ACCESS_DENIED, "댓글 작성자만 삭제할 수 있습니다.");
         }
 
-        comment.getPost().decreaseCommentsCount(); // 동시성 문제 해결해야함
         commentRepository.delete(comment);
+        postRepository.decrementCommentsCount(comment.getPost().getId());
     }
 
     private String getProfileImageUrl(Long userId) {

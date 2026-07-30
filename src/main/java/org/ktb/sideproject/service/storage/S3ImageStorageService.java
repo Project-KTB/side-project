@@ -58,11 +58,12 @@ public class S3ImageStorageService implements ImageStorageService {
     }
 
     @Override
-    public PresignedUpload presignPut(String storageKey, String contentType) {
+    public PresignedUpload presignPut(String storageKey, String contentType, long contentLength) {
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(bucket)
                 .key(storageKey)
                 .contentType(contentType)
+                .contentLength(contentLength)
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()

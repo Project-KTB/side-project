@@ -67,10 +67,10 @@ public class SecurityConfig {
 
                     if (imageUploadEnabled) {
                         auth
-                                .requestMatchers(HttpMethod.POST, "/images/posts").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/images/posts/presigned-url").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/images/profile").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/images/profile/presigned-url").permitAll()
+                                .requestMatchers(HttpMethod.POST, "/images/posts").authenticated()
+                                .requestMatchers(HttpMethod.POST, "/images/posts/presigned-url").authenticated()
+                                .requestMatchers(HttpMethod.POST, "/images/profile").authenticated()
+                                .requestMatchers(HttpMethod.POST, "/images/profile/presigned-url").authenticated()
                                 .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll();
                     } else {
                         auth

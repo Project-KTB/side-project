@@ -22,7 +22,7 @@ import org.ktb.sideproject.repository.ProfileImageRepository;
 import org.ktb.sideproject.repository.RefreshTokenRepository;
 import org.ktb.sideproject.repository.UserRepository;
 import org.ktb.sideproject.service.UserService;
-import org.ktb.sideproject.service.storage.ImageStorageService;
+import org.ktb.sideproject.service.storage.DeferredImageDeletionService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,19 +43,26 @@ public class UserServiceImpl implements UserService {
     private final PostLikeRepository postLikeRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
-    private final ImageStorageService imageStorageService;
+    private final DeferredImageDeletionService deferredImageDeletionService;
 
     @Override
     @Transactional
     public void signup(SignupRequest signupRequest) {
 
-        if(!isEmailAvailable(signupRequest.email())){
-            throw new CustomException(ErrorCode.DUPLICATE_EMAIL);
-        }
-        if(!isNicknameAvailable(signupRequest.nickname())){
-            throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
+        if (!signupRequest.password().equals(signupRequest.passwordConfirm())) {
+            throw new CustomException(ErrorCode.PASSWORD_CONFIRM_MISMATCH);
         }
 
+        if (signupRequest.profileImage() != null && !signupRequest.profileImage().isBlank()) {
+            throw new CustomException(ErrorCode.SIGNUP_PROFILE_IMAGE_NOT_SUPPORTED);
+        }
+
+        if (!isEmailAvailable(signupRequest.email())) {
+            throw new CustomException(ErrorCode.DUPLICATE_EMAIL);
+        }
+        if (!isNicknameAvailable(signupRequest.nickname())) {
+            throw new CustomException(ErrorCode.DUPLICATE_NICKNAME);
+        }
 
         User user = User.builder()
                 .email(signupRequest.email())
@@ -63,8 +70,7 @@ public class UserServiceImpl implements UserService {
                 .nickname(signupRequest.nickname())
                 .build();
 
-        User savedUser = userRepository.save(user);
-        attachProfileImage(savedUser, signupRequest.profileImage());
+        userRepository.save(user);
     }
 
     @Override
@@ -118,10 +124,10 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserInfo updateProfileImage(Long userId, ProfileImageUpdateRequest request) {
-        User user = userRepository.findById(userId).
-                orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-        attachProfileImage(user, request.profileImage());
-        return new  UserInfo(user.getId(), user.getEmail(), user.getNickname(), getProfileImageUrl(user.getId()));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        attachProfileImage(user, userId, request.profileImage());
+        return new UserInfo(user.getId(), user.getEmail(), user.getNickname(), getProfileImageUrl(user.getId()));
     }
 
     @Override
@@ -167,7 +173,7 @@ public class UserServiceImpl implements UserService {
                 .filter(postLike -> !userPostIds.contains(postLike.getPost().getId()))
                 .toList();
 
-        likesOnOtherPosts.forEach(postLike -> postLike.getPost().decreaseLikesCount());
+        likesOnOtherPosts.forEach(postLike -> postRepository.decrementLikesCount(postLike.getPost().getId()));
         postLikeRepository.deleteAll(likesOnOtherPosts);
     }
 
@@ -177,16 +183,16 @@ public class UserServiceImpl implements UserService {
                 .filter(comment -> !userPostIds.contains(comment.getPost().getId()))
                 .toList();
 
-        commentsOnOtherPosts.forEach(comment -> comment.getPost().decreaseCommentsCount());
+        commentsOnOtherPosts.forEach(comment -> postRepository.decrementCommentsCount(comment.getPost().getId()));
         commentRepository.deleteAll(commentsOnOtherPosts);
     }
 
-    private void attachProfileImage(User user, String profileImageUrl) {
+    private void attachProfileImage(User user, Long uploaderId, String profileImageUrl) {
         if (profileImageUrl == null || profileImageUrl.isBlank()) {
             return;
         }
 
-        ProfileImage profileImage = profileImageRepository.findByImageUrlAndStatus(profileImageUrl, ImageStatus.PENDING)
+        ProfileImage profileImage = profileImageRepository.findByImageUrlAndStatusAndUploaderId(profileImageUrl, ImageStatus.PENDING, uploaderId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PROFILE_IMAGE_NOT_AVAILABLE));
 
         Optional<ProfileImage> previousImage = profileImageRepository.findByUserIdAndStatus(user.getId(), ImageStatus.SAVED);
@@ -207,7 +213,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private void deleteImageFile(String storageKey) {
-        imageStorageService.delete(storageKey);
+        deferredImageDeletionService.delete(storageKey);
     }
 
     private void deleteImageFiles(List<String> storageKeys) {

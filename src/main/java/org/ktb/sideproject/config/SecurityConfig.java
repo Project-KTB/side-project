@@ -21,6 +21,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
+import org.springframework.core.annotation.Order;
 
 import java.io.IOException;
 import java.util.List;
@@ -45,6 +47,33 @@ public class SecurityConfig {
     }
 
     @Bean
+    @Order(1)
+    public SecurityFilterChain actuatorSecurityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
+        return http
+                // Actuator 엔드포인트에만 이 보안 체인을 적용합니다.
+                .securityMatcher(EndpointRequest.toAnyEndpoint())
+
+                // Prometheus가 인증 없이 수집할 수 있도록 허용합니다.
+                // 단, Kubernetes에서는 9090 포트를 Ingress로 외부 공개하지 않습니다.
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll()
+                )
+
+                .csrf(csrf -> csrf.disable())
+
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
+                )
+
+                .build();
+    }
+
+    @Bean
+    @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -63,7 +92,12 @@ public class SecurityConfig {
                             .requestMatchers(HttpMethod.POST, "/auth").permitAll()
                             .requestMatchers(HttpMethod.POST, "/users").permitAll()
                             .requestMatchers(HttpMethod.POST, "/auth/reissue").permitAll()
-                            .requestMatchers(HttpMethod.GET, "/health").permitAll();
+                            .requestMatchers(
+                                    HttpMethod.GET,
+                                    "/health",
+                                    "/livez",
+                                    "/readyz"
+                            ).permitAll();
 
                     if (imageUploadEnabled) {
                         auth

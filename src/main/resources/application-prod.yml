@@ -65,3 +65,33 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-exp-seconds: ${JWT_ACCESS_TOKEN_EXP_SECONDS:300}
   refresh-token-exp-seconds: ${JWT_REFRESH_TOKEN_EXP_SECONDS:1209600}
+
+management:
+  server:
+    port: ${MANAGEMENT_SERVER_PORT:9090}
+
+  endpoints:
+    web:
+      # 필요한 엔드포인트만 노출합니다.
+      exposure:
+        include: "health,prometheus"
+
+      # /actuator에 엔드포인트 목록을 표시하지 않습니다.
+      discovery:
+        enabled: false
+
+  endpoint:
+    health:
+      # DB 주소 등 상세 상태를 응답에 노출하지 않습니다.
+      show-details: never
+
+      probes:
+        # Kubernetes용 liveness/readiness 상태를 활성화합니다.
+        enabled: true
+
+        # 메인 애플리케이션 포트에도 /livez, /readyz를 제공합니다.
+        add-additional-paths: true
+
+  metrics:
+    tags:
+      application: side-project-backend

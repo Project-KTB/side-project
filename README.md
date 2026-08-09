@@ -1,15 +1,15 @@
-# 💬 Community
+# 출발전
 
 ## Back-end 소개
 
-- 게시글과 댓글을 통해 `서로 소통하는 커뮤니티` 프로젝트입니다.
+- 대중교통 이동 꿀팁을 나누는 집단지성 커뮤니티 프로젝트입니다.
 - `Spring Boot`로 REST API 서버를 구현하고, `MySQL`을 데이터베이스로 사용했습니다.
 - 회원가입과 로그인부터 게시글, 댓글, 좋아요, 이미지 업로드, 프론트엔드 연동과 배포까지 `직접 구현`했습니다.
 - Controller-Service-Repository 계층으로 구현했습니다.
 
 ### 개발 인원 및 기간
 
-- 개발 기간 : 2026-05-27 ~ 2026-08-01
+- 개발 기간 : 2026-05-12 ~ 2026-08-09
 - 개발 인원 : 프론트엔드/백엔드 1명 (본인)
 
 ### 사용 기술 및 Tools
@@ -33,7 +33,11 @@
 
 ### 서비스 시연
 
-- <a href="https://app.side-project.shop">배포 서비스</a>
+![영상](https://github.com/user-attachments/assets/aaf614e9-6fa9-4f08-b25b-3413ce9826f1)
+
+![영상](https://github.com/user-attachments/assets/7bcdf8ae-15a7-4254-ab4e-07854fb6f4aa)
+
+![영상](https://github.com/user-attachments/assets/9c218a1b-7d23-45c8-80a9-ff2699321719)
 
 ### 폴더 구조
 

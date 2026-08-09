@@ -33,11 +33,7 @@
 
 ### 서비스 시연
 
-![영상](https://github.com/user-attachments/assets/aaf614e9-6fa9-4f08-b25b-3413ce9826f1)
-
-![영상](https://github.com/user-attachments/assets/7bcdf8ae-15a7-4254-ab4e-07854fb6f4aa)
-
-![영상](https://github.com/user-attachments/assets/9c218a1b-7d23-45c8-80a9-ff2699321719)
+[영상](https://github.com/user-attachments/assets/bad8f46b-5d23-4b13-bf7c-b02cea2b866c)
 
 ### 폴더 구조
 
